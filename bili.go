@@ -35,6 +35,7 @@ type BiliUser struct {
 	DedeUserIDMD5 string     `json:"DedeUserID__ckMd5"`
 	Bi            ABi        `json:"bi"`
 	Login         bool       `json:"login"`
+	Expire        time.Time  `json:"expire"`
 }
 
 type ABi struct {
@@ -63,7 +64,7 @@ type BiliInfo struct {
 }
 
 type BiliData struct {
-	List []interface{} `json:"list"`
+	List []CoinLog `json:"list"`
 }
 
 type CoinLog struct {
@@ -114,7 +115,8 @@ func _QRCPrint(content string) {
 }
 
 func (biu *BiliUser) GetQRCode() error {
-	res, err := GET("https://passport.bilibili.com/qrcode/getLoginUrl", func(reqPoint *http.Request) {
+	url := "https://passport.bilibili.com/qrcode/getLoginUrl"
+	res, err := GET(url, func(reqPoint *http.Request) {
 
 		cookie1 := &http.Cookie{Name: "_uuid", Value: biu.UUID}
 		cookie3 := &http.Cookie{Name: "buvid3", Value: biu.BuVID}
@@ -181,17 +183,36 @@ func (biu *BiliUser) GetBiliLoginInfo(cron *cron.Cron) {
 		// json.NewDecoder(res.Body).Decode(&biu.Bi)
 		cookies := res.Cookies()
 		if len(cookies) == 8 {
+			cron.Stop()
 			biu.DedeUserID = cookies[0].Value
 			biu.DedeUserIDMD5 = cookies[2].Value
 			biu.SESSDATA = cookies[4].Value
 			biu.BiliJCT = cookies[6].Value
-			cron.Stop()
 			biu.Login = true
 			Info("Login Succeed~", logrus.Fields{"UID": biu.DedeUserID})
-			biu.GetBiliCoinLog()
+			// biu.GetBiliCoinLog()
+
+			biu.InfoUpdate()
 		} else {
 			Info(result.Message)
 		}
+	}
+}
+
+func (biu *BiliUser) InfoUpdate() {
+	conf := GetConfig()
+	for k, _ := range conf.BiU {
+		if biu.DedeUserID == conf.BiU[k].DedeUserID {
+			conf.BiU[k] = *biu
+			if err := conf.SetConfig(); err != nil {
+				Warn("error json setting")
+			}
+			return
+		}
+	}
+	conf.BiU = append(conf.BiU, *biu)
+	if err := conf.SetConfig(); err != nil {
+		Warn("error json setting")
 	}
 }
 
@@ -209,37 +230,10 @@ func (biu *BiliUser) BiliScanAwait() {
 func (biu *BiliUser) GetBiliCoinLog() {
 	url := "https://api.bilibili.com/x/member/web/coin/log?jsonp=jsonp"
 	res, err := GET(url, func(reqPoint *http.Request) {
-		cookie3 := &http.Cookie{Name: "sid", Value: biu.SID}
-		cookie1 := &http.Cookie{Name: "_uuid", Value: biu.UUID}
-		cookie2 := &http.Cookie{Name: "buvid3", Value: biu.BuVID}
+		biu.NormalAuthHeader(reqPoint)
 
-		cookie4 := &http.Cookie{Name: "finger", Value: GetConfig().Finger}
-		cookie0 := &http.Cookie{Name: "PVID", Value: "6"}
-		cookie8 := &http.Cookie{Name: "SESSDATA", Value: biu.SESSDATA}
-		cookie5 := &http.Cookie{Name: "DedeUserID", Value: biu.DedeUserID}
-		cookie6 := &http.Cookie{Name: "DedeUserID__ckMd5", Value: biu.DedeUserIDMD5}
-		cookie7 := &http.Cookie{Name: "bili_jct", Value: biu.BiliJCT}
-
-		reqPoint.AddCookie(cookie0)
-		reqPoint.AddCookie(cookie1)
-		reqPoint.AddCookie(cookie2)
-		reqPoint.AddCookie(cookie3)
-		reqPoint.AddCookie(cookie4)
-		reqPoint.AddCookie(cookie5)
-		reqPoint.AddCookie(cookie6)
-		reqPoint.AddCookie(cookie7)
-		reqPoint.AddCookie(cookie8)
-
-		reqPoint.Header.Add("accept", "application/json, text/plain, */*")
-		reqPoint.Header.Add("accept-encoding", "deflate, br")
 		reqPoint.Header.Add("origin", "https://account.bilibili.com")
 		reqPoint.Header.Add("referer", "https://account.bilibili.com/account/coin")
-		reqPoint.Header.Add("sec-fetch-dest", "empty")
-		reqPoint.Header.Add("sec-fetch-mode", "cors")
-		reqPoint.Header.Add("sec-fetch-site", "same-origin")
-
-		reqPoint.Header.Add("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.105 Safari/537.36")
-
 	})
 
 	if res != nil && err == nil {
@@ -247,12 +241,41 @@ func (biu *BiliUser) GetBiliCoinLog() {
 		json.NewDecoder(res.Body).Decode(&msg)
 		println(len(msg.Data.List))
 
-		str := msg.Data.List[0].(CoinLog)
-		time1, _ := time.ParseInLocation("2006-01-02 15:04:05", str.Time, time.Local)
+		time1, _ := time.ParseInLocation("2006-01-02 15:04:05", msg.Data.List[0].Time, time.Local)
 		println(time1.String())
 
 		println(time1.String())
 		println(time1.String())
 	}
 
+}
+
+func (biu *BiliUser) NormalAuthHeader(reqPoint *http.Request) {
+	cookie3 := &http.Cookie{Name: "sid", Value: biu.SID}
+	cookie1 := &http.Cookie{Name: "_uuid", Value: biu.UUID}
+	cookie2 := &http.Cookie{Name: "buvid3", Value: biu.BuVID}
+
+	cookie4 := &http.Cookie{Name: "finger", Value: GetConfig().Finger}
+	cookie0 := &http.Cookie{Name: "PVID", Value: "6"}
+	cookie8 := &http.Cookie{Name: "SESSDATA", Value: biu.SESSDATA}
+	cookie5 := &http.Cookie{Name: "DedeUserID", Value: biu.DedeUserID}
+	cookie6 := &http.Cookie{Name: "DedeUserID__ckMd5", Value: biu.DedeUserIDMD5}
+	cookie7 := &http.Cookie{Name: "bili_jct", Value: biu.BiliJCT}
+
+	reqPoint.AddCookie(cookie0)
+	reqPoint.AddCookie(cookie1)
+	reqPoint.AddCookie(cookie2)
+	reqPoint.AddCookie(cookie3)
+	reqPoint.AddCookie(cookie4)
+	reqPoint.AddCookie(cookie5)
+	reqPoint.AddCookie(cookie6)
+	reqPoint.AddCookie(cookie7)
+	reqPoint.AddCookie(cookie8)
+
+	reqPoint.Header.Add("accept", "application/json, text/plain, */*")
+	reqPoint.Header.Add("accept-encoding", "deflate, br")
+	reqPoint.Header.Add("sec-fetch-dest", "empty")
+	reqPoint.Header.Add("sec-fetch-mode", "cors")
+	reqPoint.Header.Add("sec-fetch-site", "same-origin")
+	reqPoint.Header.Add("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.105 Safari/537.36")
 }

@@ -14,25 +14,48 @@ import (
  * local config struct
  */
 type LocalConfig struct {
-	Username    string    `json:"username"`
-	Password    string    `json:"password"`
-	Finger      string    `json:"finger"` // 帆布指纹识别
-	CacheTime   time.Time `json:"-"`
-	LoggerLevel *string   `json:"log_level"`
-	Version     *string   `json:"version"`
+	Username    string     `json:"username"`
+	Password    string     `json:"password"`
+	Finger      string     `json:"finger"` // 帆布指纹识别
+	CacheTime   time.Time  `json:"-"`
+	LoggerLevel *string    `json:"log_level"`
+	Version     *string    `json:"version"`
+	BiU         []BiliUser `json:"biu"`
 }
 
 var config = new(LocalConfig)
+var configPath = "bili.json"
 
 func GetConfig() *LocalConfig {
 	if config.CacheTime.Before(time.Now()) {
-		if err := LoadConfig("bili.json", config); err != nil {
+		if err := LoadConfig(configPath, config); err != nil {
 			Fatal("loading file failed")
 			return nil
 		}
 		config.CacheTime = time.Now().Add(time.Second * 60)
 	}
 	return config
+}
+
+/**
+ * save cnf/conf.json
+ */
+func (lc *LocalConfig) SetConfig() error {
+	fp, err := os.Create(configPath)
+	if err != nil {
+		Fatal("loading file failed", logrus.Fields{"err": err})
+	}
+	defer fp.Close()
+	data, err := json.Marshal(lc)
+	if err != nil {
+		Fatal("marshal file failed", logrus.Fields{"err": err})
+	}
+	n, err := fp.Write(data)
+	if err != nil {
+		Fatal("write file failed", logrus.Fields{"err": err})
+	}
+	Info("already update config file", logrus.Fields{"size": n})
+	return nil
 }
 
 const configFileSizeLimit = 10 << 20
