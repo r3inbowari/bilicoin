@@ -14,7 +14,7 @@
     ```
     ./bilicoin_linux_amd64 -n
     ```
-    ![QRCode](qrcode.png "README.md")
+    <img src="qrcode.png" style="height:300px" />
 
 2. 登录成功后使用命令行输入下面内容即可开启投币服务  
     ```
