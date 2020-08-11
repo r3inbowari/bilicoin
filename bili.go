@@ -8,7 +8,11 @@ import (
 	"github.com/robfig/cron"
 	"github.com/sirupsen/logrus"
 	"io/ioutil"
+	"math"
+	"math/rand"
 	"net/http"
+	"regexp"
+	"strconv"
 	"time"
 )
 
@@ -36,6 +40,8 @@ type BiliUser struct {
 	Bi            ABi        `json:"bi"`
 	Login         bool       `json:"login"`
 	Expire        time.Time  `json:"expire"`
+	DropCoinCount int        `json:"drop_coin_count,omitempty"`
+	BlockBVList   []string   `json:"block_bv_list"`
 }
 
 type ABi struct {
@@ -64,7 +70,9 @@ type BiliInfo struct {
 }
 
 type BiliData struct {
-	List []CoinLog `json:"list"`
+	List []CoinLog `json:"list,omitempty"`
+	Like string    `json:"like,omitempty"`
+	BVID string    `json:"bvid,omitempty"`
 }
 
 type CoinLog struct {
@@ -171,9 +179,7 @@ func (biu *BiliUser) GetBiliLoginInfo(cron *cron.Cron) {
 		reqPoint.Header.Add("sec-fetch-site", "same-origin")
 
 		reqPoint.Header.Add("x-requested-with", "XMLHttpRequest")
-
 		reqPoint.Header.Add("content-type", "application/x-www-form-urlencoded; charset=UTF-8")
-		reqPoint.Header.Add("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.105 Safari/537.36")
 	}, data)
 
 	if res != nil && err == nil {
@@ -239,15 +245,80 @@ func (biu *BiliUser) GetBiliCoinLog() {
 	if res != nil && err == nil {
 		var msg BiliInfo
 		json.NewDecoder(res.Body).Decode(&msg)
-		println(len(msg.Data.List))
 
-		time1, _ := time.ParseInLocation("2006-01-02 15:04:05", msg.Data.List[0].Time, time.Local)
-		println(time1.String())
+		bl, _ := json.Marshal(msg)
+		reg := regexp.MustCompile("BV[a-zA-Z0-9_]+")
+		g := reg.FindAllString(string(bl), -1)
+		biu.BlockBVList = g
+		biu.InfoUpdate()
 
-		println(time1.String())
-		println(time1.String())
+		for k, _ := range msg.Data.List {
+			if isToday(msg.Data.List[k].Time) {
+				reg := regexp.MustCompile("BV[a-zA-Z0-9_]+")
+				g := reg.FindAllString(msg.Data.List[k].Reason, -1)
+				if len(g) > 0 {
+					biu.DropCoinCount -= msg.Data.List[k].Delta
+				}
+			} else {
+				break
+			}
+		}
 	}
+	Info("coin log", logrus.Fields{"dropCount": biu.DropCoinCount, "UID": biu.DedeUserID})
+}
 
+func LoadUser() []BiliUser {
+	return GetConfig().BiU
+}
+
+func GetUser(uid string) (*BiliUser, error) {
+	users := LoadUser()
+	for k, _ := range users {
+		if users[k].DedeUserID == uid {
+			users[k].GetBiliCoinLog()
+			return &users[k], nil
+		}
+	}
+	return nil, errors.New("not found user")
+}
+
+func DelUser(uid string) error {
+	users := LoadUser()
+	for k, _ := range users {
+		if users[k].DedeUserID == uid {
+			users = append(users[:k], users[k+1:]...)
+			config.BiU = users
+			_ = config.SetConfig()
+		}
+	}
+	return errors.New("not found user")
+}
+
+func GetAllUID() []string {
+	users := LoadUser()
+	var retVal []string
+	for k, _ := range users {
+		retVal = append(retVal, users[k].DedeUserID)
+	}
+	return retVal
+}
+
+func isToday(timeStr string) bool {
+	t, _ := time.ParseInLocation("2006-01-02 15:04:05", timeStr, time.Local)
+	if t.Unix() > GetZeroTime() && t.Unix() < GetLastTime() {
+		return true
+	}
+	return false
+}
+
+func GetZeroTime() int64 {
+	currentTime := time.Now()
+	return time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day(), 0, 0, 0, 0, currentTime.Location()).Unix()
+}
+
+func GetLastTime() int64 {
+	currentTime := time.Now()
+	return time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day(), 23, 59, 59, 0, currentTime.Location()).Unix()
 }
 
 func (biu *BiliUser) NormalAuthHeader(reqPoint *http.Request) {
@@ -277,5 +348,83 @@ func (biu *BiliUser) NormalAuthHeader(reqPoint *http.Request) {
 	reqPoint.Header.Add("sec-fetch-dest", "empty")
 	reqPoint.Header.Add("sec-fetch-mode", "cors")
 	reqPoint.Header.Add("sec-fetch-site", "same-origin")
-	reqPoint.Header.Add("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.105 Safari/537.36")
+
+}
+
+func GetGuichuBVs() []string {
+	res, _ := GET("https://api.bilibili.com/x/web-interface/ranking/region?rid=119&day=3&original=0", nil)
+	result, _ := ioutil.ReadAll(res.Body)
+	reg := regexp.MustCompile("BV[a-zA-Z0-9_]{10}")
+	return reg.FindAllString(string(result), -1)
+}
+
+//func GetGuichuBVs() []string {
+//	res, _ := GET("https://api.bilibili.com/x/web-interface/ranking/region?rid=119&day=3&original=0", nil)
+//	var info BiliInfo
+//	_ = json.NewDecoder(res.Body).Decode(&res)
+//	var ret []string
+//	return ret
+//}
+
+func (biu *BiliUser) DropCoin(bv string) {
+	aid := BVCovertDec(bv)
+	if biu.DropCoinCount > 4 {
+		Info("number of coins tossed today >= 5", logrus.Fields{"BVID": bv, "AVID": aid, "UID": biu.DedeUserID, "dropCount": biu.DropCoinCount})
+		return
+	}
+	url := "https://api.bilibili.com/x/web-interface/coin/add?" + "aid=" + aid + "&multiply=1&select_like=1&cross_domain=true&csrf=" + biu.BiliJCT
+
+	res, err := Post(url, func(reqPoint *http.Request) {
+		biu.NormalAuthHeader(reqPoint)
+		reqPoint.Header.Add("origin", "https://account.bilibili.com")
+		reqPoint.Header.Add("referer", "https://www.bilibili.com/video/"+bv+"/?spm_id_from=333.788.videocard.0")
+	})
+
+	if res != nil && err == nil {
+		var msg BiliInfo
+		_ = json.NewDecoder(res.Body).Decode(&msg)
+		if msg.Message == "0" {
+			biu.DropCoinCount++
+			Info("Drop coin succeed", logrus.Fields{"BVID": bv, "AVID": aid, "UID": biu.DedeUserID, "dropCount": biu.DropCoinCount})
+		} else if msg.Message == "超过投币上限啦~" {
+			Info("Drop coin limited", logrus.Fields{"BVID": bv, "AVID": aid, "UID": biu.DedeUserID, "dropCount": biu.DropCoinCount})
+		}
+	}
+}
+
+var xor = 177451812
+var add = 8728348608
+var table = "fZodR9XQDSUm21yCkr6zBqiveYah8bt4xsWpHnJE7jL5VG3guMTKNPAwcF"
+var s = []int{11, 10, 3, 8, 4, 6, 2, 9, 5, 7}
+
+func BVCovertDec(bv string) string {
+	var tr = make(map[byte]int)
+	for i := 1; i < 58; i++ {
+		tr[table[i]] = i
+	}
+	r := 0
+	for i := 0; i < 6; i++ {
+		r += tr[bv[s[i]]] * int(math.Pow(58.0, float64(i)))
+	}
+	retAV := (r - add) ^ xor
+	return strconv.Itoa(retAV)
+}
+
+func BVCovertEnc(av string) string {
+	var r = []string{"B", "V", "1", "", "", "4", "", "1", "", "7", "", ""}
+	x, _ := strconv.Atoi(av)
+	x_ := (x ^ xor) + add
+	for i := 0; i < 6; i++ {
+		_x := int(math.Pow(58.0, float64(i)))
+		aj := int(math.Floor(float64(x_ / _x)))
+		r[s[i]] = string(table[aj%58])
+	}
+	return r[0] + r[1] + r[2] + r[3] + r[4] + r[5] + r[6] + r[7] + r[8] + r[9] + r[10] + r[11]
+}
+
+func (biu *BiliUser) RandDrop() {
+	bvs := GetGuichuBVs()
+	rand.Seed(time.Now().UnixNano())
+	randIndex := rand.Intn(len(bvs))
+	biu.DropCoin(bvs[randIndex])
 }

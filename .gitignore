@@ -1,2 +1,5 @@
 bili.json
 .idea
+cmd/*.exe
+cmd/cmd
+cmd/example
