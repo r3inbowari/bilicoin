@@ -76,7 +76,7 @@ type CoinLog struct {
 	Reason string `json:"reason"`
 }
 
-var Version = "v1.0.1 build on 08 12 2020"
+var Version = "v1.0.1 build on 08 12 2020 e811d4c..fb38f8f master"
 
 // 创建用户
 func CreateUser() (*BiliUser, error) {
@@ -347,8 +347,8 @@ func CronDrop(biu BiliUser) {
 		for i := 0; i < 5; i++ {
 			biu.RandDrop()
 			time.Sleep(Random(60))
-			Info("cron finish", logrus.Fields{"UID": biu.DedeUserID})
 		}
+		Info("cron finish", logrus.Fields{"UID": biu.DedeUserID})
 	})
 	c.Start()
 }
