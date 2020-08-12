@@ -3,16 +3,11 @@ package bilicoin
 import (
 	"encoding/json"
 	"errors"
-	qrcodeTerminal "github.com/Baozisoftware/qrcode-terminal-go"
-	"github.com/robertkrimen/otto"
 	"github.com/robfig/cron"
 	"github.com/sirupsen/logrus"
-	"io/ioutil"
-	"math"
 	"math/rand"
 	"net/http"
 	"regexp"
-	"strconv"
 	"time"
 )
 
@@ -81,8 +76,9 @@ type CoinLog struct {
 	Reason string `json:"reason"`
 }
 
-var inlineJSCode = `func test() {}`
+var Version = "v1.0.1 build on 08 12 2020"
 
+// 创建用户
 func CreateUser() (*BiliUser, error) {
 	var biu BiliUser
 	var err error
@@ -95,45 +91,21 @@ func CreateUser() (*BiliUser, error) {
 	return &biu, err
 }
 
-func _buvidGenerate() (string, error) {
-	url := "https://data.bilibili.com/v/web/web_page_view?mid=null&fts=null&url=https%253A%252F%252Fwww.bilibili.com%252F&proid=3&ptype=2&module=game&title=%E5%93%94%E5%93%A9%E5%93%94%E5%93%A9%20(%E3%82%9C-%E3%82%9C)%E3%81%A4%E3%83%AD%20%E5%B9%B2%E6%9D%AF~-bilibili&ajaxtag=&ajaxid=&page_ref=https%253A%252F%252Fpassport.bilibili.com%252Flogin"
-	res, err := GET(url, nil)
-	if res != nil {
-		cook := res.Cookies()
-		return cook[1].Value, err
-	}
-	return "", errors.New("nil buvid response")
-}
-
-func _uuidGenerate() (string, error) {
-	bytes, err := ioutil.ReadFile("bili.js")
-	vm := otto.New()
-	_, err = vm.Run(bytes)
-	uuid, err := vm.Call("generateUuid", nil)
-	return uuid.String(), err
-}
-
+// 打印二维码
 func (biu *BiliUser) QRCodePrint() {
-	_QRCPrint(biu.OAuth.Url)
+	QRCPrint(biu.OAuth.Url)
 }
 
-func _QRCPrint(content string) {
-	obj := qrcodeTerminal.New2(qrcodeTerminal.ConsoleColors.BrightBlue, qrcodeTerminal.ConsoleColors.BrightGreen, qrcodeTerminal.QRCodeRecoveryLevels.Low)
-	obj.Get(content).Print()
-}
-
+// 获取二维码
 func (biu *BiliUser) GetQRCode() error {
 	url := "https://passport.bilibili.com/qrcode/getLoginUrl"
 	res, err := GET(url, func(reqPoint *http.Request) {
-
 		cookie1 := &http.Cookie{Name: "_uuid", Value: biu.UUID}
 		cookie3 := &http.Cookie{Name: "buvid3", Value: biu.BuVID}
 		cookie4 := &http.Cookie{Name: "PVID", Value: "1"}
-
 		reqPoint.AddCookie(cookie1)
 		reqPoint.AddCookie(cookie3)
 		reqPoint.AddCookie(cookie4)
-
 	})
 
 	if err != nil {
@@ -146,12 +118,12 @@ func (biu *BiliUser) GetQRCode() error {
 		return err
 	}
 
-	// QRCodePrint(qr.Data.Url)
 	biu.OAuth = qr.Data
 	biu.SID = res.Cookies()[0].Value
 	return nil
 }
 
+// 获取登录信息
 func (biu *BiliUser) GetBiliLoginInfo(cron *cron.Cron) {
 	url := "https://passport.bilibili.com/qrcode/getLoginInfo"
 
@@ -186,7 +158,6 @@ func (biu *BiliUser) GetBiliLoginInfo(cron *cron.Cron) {
 		var result BiliInfo
 
 		json.NewDecoder(res.Body).Decode(&result)
-		// json.NewDecoder(res.Body).Decode(&biu.Bi)
 		cookies := res.Cookies()
 		if len(cookies) == 8 {
 			cron.Stop()
@@ -205,6 +176,7 @@ func (biu *BiliUser) GetBiliLoginInfo(cron *cron.Cron) {
 	}
 }
 
+// 更新信息
 func (biu *BiliUser) InfoUpdate() {
 	conf := GetConfig()
 	for k, _ := range conf.BiU {
@@ -222,6 +194,7 @@ func (biu *BiliUser) InfoUpdate() {
 	}
 }
 
+// 等待扫描
 func (biu *BiliUser) BiliScanAwait() {
 	i := 0
 	c := cron.New()
@@ -233,6 +206,7 @@ func (biu *BiliUser) BiliScanAwait() {
 	c.Start()
 }
 
+// 硬币日志获取
 func (biu *BiliUser) GetBiliCoinLog() {
 	url := "https://api.bilibili.com/x/member/web/coin/log?jsonp=jsonp"
 	res, err := GET(url, func(reqPoint *http.Request) {
@@ -265,6 +239,69 @@ func (biu *BiliUser) GetBiliCoinLog() {
 		}
 	}
 	Info("coin log", logrus.Fields{"dropCount": biu.DropCoinCount, "UID": biu.DedeUserID})
+}
+
+func (biu *BiliUser) NormalAuthHeader(reqPoint *http.Request) {
+	cookie3 := &http.Cookie{Name: "sid", Value: biu.SID}
+	cookie1 := &http.Cookie{Name: "_uuid", Value: biu.UUID}
+	cookie2 := &http.Cookie{Name: "buvid3", Value: biu.BuVID}
+	cookie4 := &http.Cookie{Name: "finger", Value: GetConfig().Finger}
+	cookie0 := &http.Cookie{Name: "PVID", Value: "6"}
+	cookie8 := &http.Cookie{Name: "SESSDATA", Value: biu.SESSDATA}
+	cookie5 := &http.Cookie{Name: "DedeUserID", Value: biu.DedeUserID}
+	cookie6 := &http.Cookie{Name: "DedeUserID__ckMd5", Value: biu.DedeUserIDMD5}
+	cookie7 := &http.Cookie{Name: "bili_jct", Value: biu.BiliJCT}
+
+	reqPoint.AddCookie(cookie0)
+	reqPoint.AddCookie(cookie1)
+	reqPoint.AddCookie(cookie2)
+	reqPoint.AddCookie(cookie3)
+	reqPoint.AddCookie(cookie4)
+	reqPoint.AddCookie(cookie5)
+	reqPoint.AddCookie(cookie6)
+	reqPoint.AddCookie(cookie7)
+	reqPoint.AddCookie(cookie8)
+
+	reqPoint.Header.Add("accept", "application/json, text/plain, */*")
+	reqPoint.Header.Add("accept-encoding", "deflate, br")
+	reqPoint.Header.Add("sec-fetch-dest", "empty")
+	reqPoint.Header.Add("sec-fetch-mode", "cors")
+	reqPoint.Header.Add("sec-fetch-site", "same-origin")
+}
+
+func (biu *BiliUser) DropCoin(bv string) {
+	aid := BVCovertDec(bv)
+	if biu.DropCoinCount > 4 {
+		Info("number of coins tossed today >= 5", logrus.Fields{"BVID": bv, "AVID": aid, "UID": biu.DedeUserID, "dropCount": biu.DropCoinCount})
+		SendMessage2WeChat(biu.DedeUserID + "打赏上限")
+		return
+	}
+	url := "https://api.bilibili.com/x/web-interface/coin/add?" + "aid=" + aid + "&multiply=1&select_like=1&cross_domain=true&csrf=" + biu.BiliJCT
+
+	res, err := Post(url, func(reqPoint *http.Request) {
+		biu.NormalAuthHeader(reqPoint)
+		reqPoint.Header.Add("origin", "https://account.bilibili.com")
+		reqPoint.Header.Add("referer", "https://www.bilibili.com/video/"+bv+"/?spm_id_from=333.788.videocard.0")
+	})
+
+	if res != nil && err == nil {
+		var msg BiliInfo
+		_ = json.NewDecoder(res.Body).Decode(&msg)
+		if msg.Message == "0" {
+			biu.DropCoinCount++
+			Info("Drop coin succeed", logrus.Fields{"BVID": bv, "AVID": aid, "UID": biu.DedeUserID, "dropCount": biu.DropCoinCount})
+			SendMessage2WeChat(biu.DedeUserID + "打赏" + bv + "成功")
+		} else if msg.Message == "超过投币上限啦~" {
+			Info("Drop coin limited", logrus.Fields{"BVID": bv, "AVID": aid, "UID": biu.DedeUserID, "dropCount": biu.DropCoinCount})
+		}
+	}
+}
+
+func (biu *BiliUser) RandDrop() {
+	bvs := GetGuichuBVs()
+	rand.Seed(time.Now().UnixNano())
+	randIndex := rand.Intn(len(bvs))
+	biu.DropCoin(bvs[randIndex])
 }
 
 func LoadUser() []BiliUser {
@@ -303,128 +340,27 @@ func GetAllUID() []string {
 	return retVal
 }
 
-func isToday(timeStr string) bool {
-	t, _ := time.ParseInLocation("2006-01-02 15:04:05", timeStr, time.Local)
-	if t.Unix() > GetZeroTime() && t.Unix() < GetLastTime() {
-		return true
-	}
-	return false
+func CronDrop(biu BiliUser) {
+	c := cron.New()
+	_ = c.AddFunc(GetConfig().Cron, func() {
+		biu.GetBiliCoinLog()
+		for i := 0; i < 5; i++ {
+			biu.RandDrop()
+			time.Sleep(Random(60))
+			Info("cron finish", logrus.Fields{"UID": biu.DedeUserID})
+		}
+	})
+	c.Start()
 }
 
-func GetZeroTime() int64 {
-	currentTime := time.Now()
-	return time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day(), 0, 0, 0, 0, currentTime.Location()).Unix()
-}
-
-func GetLastTime() int64 {
-	currentTime := time.Now()
-	return time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day(), 23, 59, 59, 0, currentTime.Location()).Unix()
-}
-
-func (biu *BiliUser) NormalAuthHeader(reqPoint *http.Request) {
-	cookie3 := &http.Cookie{Name: "sid", Value: biu.SID}
-	cookie1 := &http.Cookie{Name: "_uuid", Value: biu.UUID}
-	cookie2 := &http.Cookie{Name: "buvid3", Value: biu.BuVID}
-
-	cookie4 := &http.Cookie{Name: "finger", Value: GetConfig().Finger}
-	cookie0 := &http.Cookie{Name: "PVID", Value: "6"}
-	cookie8 := &http.Cookie{Name: "SESSDATA", Value: biu.SESSDATA}
-	cookie5 := &http.Cookie{Name: "DedeUserID", Value: biu.DedeUserID}
-	cookie6 := &http.Cookie{Name: "DedeUserID__ckMd5", Value: biu.DedeUserIDMD5}
-	cookie7 := &http.Cookie{Name: "bili_jct", Value: biu.BiliJCT}
-
-	reqPoint.AddCookie(cookie0)
-	reqPoint.AddCookie(cookie1)
-	reqPoint.AddCookie(cookie2)
-	reqPoint.AddCookie(cookie3)
-	reqPoint.AddCookie(cookie4)
-	reqPoint.AddCookie(cookie5)
-	reqPoint.AddCookie(cookie6)
-	reqPoint.AddCookie(cookie7)
-	reqPoint.AddCookie(cookie8)
-
-	reqPoint.Header.Add("accept", "application/json, text/plain, */*")
-	reqPoint.Header.Add("accept-encoding", "deflate, br")
-	reqPoint.Header.Add("sec-fetch-dest", "empty")
-	reqPoint.Header.Add("sec-fetch-mode", "cors")
-	reqPoint.Header.Add("sec-fetch-site", "same-origin")
-
-}
-
-func GetGuichuBVs() []string {
-	res, _ := GET("https://api.bilibili.com/x/web-interface/ranking/region?rid=119&day=3&original=0", nil)
-	result, _ := ioutil.ReadAll(res.Body)
-	reg := regexp.MustCompile("BV[a-zA-Z0-9_]{10}")
-	return reg.FindAllString(string(result), -1)
-}
-
-//func GetGuichuBVs() []string {
-//	res, _ := GET("https://api.bilibili.com/x/web-interface/ranking/region?rid=119&day=3&original=0", nil)
-//	var info BiliInfo
-//	_ = json.NewDecoder(res.Body).Decode(&res)
-//	var ret []string
-//	return ret
-//}
-
-func (biu *BiliUser) DropCoin(bv string) {
-	aid := BVCovertDec(bv)
-	if biu.DropCoinCount > 4 {
-		Info("number of coins tossed today >= 5", logrus.Fields{"BVID": bv, "AVID": aid, "UID": biu.DedeUserID, "dropCount": biu.DropCoinCount})
+func CronDropReg() {
+	bius := GetConfig().BiU
+	if len(bius) == 0 {
+		println("not found users")
 		return
 	}
-	url := "https://api.bilibili.com/x/web-interface/coin/add?" + "aid=" + aid + "&multiply=1&select_like=1&cross_domain=true&csrf=" + biu.BiliJCT
-
-	res, err := Post(url, func(reqPoint *http.Request) {
-		biu.NormalAuthHeader(reqPoint)
-		reqPoint.Header.Add("origin", "https://account.bilibili.com")
-		reqPoint.Header.Add("referer", "https://www.bilibili.com/video/"+bv+"/?spm_id_from=333.788.videocard.0")
-	})
-
-	if res != nil && err == nil {
-		var msg BiliInfo
-		_ = json.NewDecoder(res.Body).Decode(&msg)
-		if msg.Message == "0" {
-			biu.DropCoinCount++
-			Info("Drop coin succeed", logrus.Fields{"BVID": bv, "AVID": aid, "UID": biu.DedeUserID, "dropCount": biu.DropCoinCount})
-		} else if msg.Message == "超过投币上限啦~" {
-			Info("Drop coin limited", logrus.Fields{"BVID": bv, "AVID": aid, "UID": biu.DedeUserID, "dropCount": biu.DropCoinCount})
-		}
+	for k, _ := range bius {
+		println("cron - add user " + bius[k].DedeUserID)
+		CronDrop(bius[k])
 	}
-}
-
-var xor = 177451812
-var add = 8728348608
-var table = "fZodR9XQDSUm21yCkr6zBqiveYah8bt4xsWpHnJE7jL5VG3guMTKNPAwcF"
-var s = []int{11, 10, 3, 8, 4, 6, 2, 9, 5, 7}
-
-func BVCovertDec(bv string) string {
-	var tr = make(map[byte]int)
-	for i := 1; i < 58; i++ {
-		tr[table[i]] = i
-	}
-	r := 0
-	for i := 0; i < 6; i++ {
-		r += tr[bv[s[i]]] * int(math.Pow(58.0, float64(i)))
-	}
-	retAV := (r - add) ^ xor
-	return strconv.Itoa(retAV)
-}
-
-func BVCovertEnc(av string) string {
-	var r = []string{"B", "V", "1", "", "", "4", "", "1", "", "7", "", ""}
-	x, _ := strconv.Atoi(av)
-	x_ := (x ^ xor) + add
-	for i := 0; i < 6; i++ {
-		_x := int(math.Pow(58.0, float64(i)))
-		aj := int(math.Floor(float64(x_ / _x)))
-		r[s[i]] = string(table[aj%58])
-	}
-	return r[0] + r[1] + r[2] + r[3] + r[4] + r[5] + r[6] + r[7] + r[8] + r[9] + r[10] + r[11]
-}
-
-func (biu *BiliUser) RandDrop() {
-	bvs := GetGuichuBVs()
-	rand.Seed(time.Now().UnixNano())
-	randIndex := rand.Intn(len(bvs))
-	biu.DropCoin(bvs[randIndex])
 }

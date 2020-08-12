@@ -13,7 +13,7 @@ func TestBiliHomepage(t *testing.T) {
 
 	result, _ := ioutil.ReadAll(res.Body)
 
-	reg := regexp.MustCompile("BV[a-zA-Z0-9_]+" )
+	reg := regexp.MustCompile("BV[a-zA-Z0-9_]+")
 	g := reg.FindAllString(string(result), -1)
 	fmt.Println(g)
 }

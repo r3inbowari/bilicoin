@@ -32,8 +32,6 @@ func InitLogger() {
 		FullTimestamp: true,
 	})
 	log.Hooks.Add(NewContextHook())
-	Info("server version: " + *GetConfig().Version)
-	Info("log level: " + *GetConfig().LoggerLevel)
 }
 
 func Info(msg string, fields ...logrus.Fields) {

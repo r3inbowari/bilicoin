@@ -14,13 +14,12 @@ import (
  * local config struct
  */
 type LocalConfig struct {
-	Username    string     `json:"username"`
-	Password    string     `json:"password"`
 	Finger      string     `json:"finger"` // 帆布指纹识别
+	FT          string     `json:"ft"`
 	CacheTime   time.Time  `json:"-"`
 	LoggerLevel *string    `json:"log_level"`
-	Version     *string    `json:"version"`
 	BiU         []BiliUser `json:"biu"`
+	Cron        string     `json:"cron"`
 }
 
 var config = new(LocalConfig)
