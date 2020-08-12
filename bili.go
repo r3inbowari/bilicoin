@@ -76,7 +76,7 @@ type CoinLog struct {
 	Reason string `json:"reason"`
 }
 
-var Version = "v1.0.1 build on 08 12 2020 e811d4c..fb38f8f master"
+var Version = "v1.0.2 build on 08 12 2020 e811d4c..fb38f8f master"
 
 // 创建用户
 func CreateUser() (*BiliUser, error) {
