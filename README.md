@@ -12,7 +12,7 @@
 ## 基本使用  
 项目请自行编译或者从 [Release](https://github.com/r3inbowari/bilicoin/releases "Releases Download") 中下载
 
-完整的项目包括以下三个文件: `bilicoin_os_arch`, `bili.js`, `bili.json`
+完整的项目包括以下三个文件: `bilicoin_os_arch`, `bili.json[自动生成]`
 
 1. 命令行输入下面内容，会弹出 `QRCode` 使用B站客户端扫码，添加用户  
     ```
