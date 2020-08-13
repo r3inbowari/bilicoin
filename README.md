@@ -41,7 +41,7 @@
     ./bilicoin_linux_amd64 30722 -d
     ```
 3. 配置方糖微信通知[可选]  
-       
+   
     ```
     ./bilicoin_linux_amd64 -f [方糖 SecretKey]
     // example: 
@@ -50,6 +50,36 @@
 
     // 2. 清除方糖key
     ./bilicoin_linux_amd64 -f
+    ```
+
+## 使用 Docker 构建  
+
+你也可以将生成的 json 文件通过挂载的方式运行在 `docker` 上。  
+1. 构建镜像 
+   
+    ```
+    // build image
+    docker build -t r3inbowari/bilicoin:v1.0.2 .
+
+    // prune dangling image: builder
+    docker image prune --filter label=stage=builder
+    ```
+
+2. 如果不想构建的话可以直接拉我已经构建好的镜像[linux/amd64]  
+   
+    ```
+    docker push r3inbowari/bilicoin
+    ```
+
+3. 运行(注意要挂载json文件)  
+   
+    ```
+    // run
+    docker run \
+    --name bilicoin \ 
+    -itd --restart=always \
+    -v /root/bilicoin/bili.json:/app/bili.json \
+    r3inbowari/bilicoin
     ```
 
 ## 其他问题  
