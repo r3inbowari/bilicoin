@@ -1,9 +1,12 @@
 package bilicoin
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
 	qrcodeTerminal "github.com/Baozisoftware/qrcode-terminal-go"
 	"github.com/robertkrimen/otto"
+	"github.com/satori/go.uuid"
 	"io/ioutil"
 	"math"
 	"math/rand"
@@ -129,6 +132,7 @@ func InitConfig() {
 		config.Finger = "1777945899"
 		config.LoggerLevel = &l
 		config.BiU = []BiliUser{}
+		config.APIAddr = ":9090"
 		_ = config.SetConfig()
 	}
 }
@@ -196,4 +200,30 @@ func Post(url string, interceptor func(reqPoint *http.Request)) (*http.Response,
 func Random(max int) time.Duration {
 	rand.Seed(time.Now().UnixNano())
 	return time.Duration(rand.Intn(max)) * time.Second
+}
+
+type RequestResult struct {
+	Total   int         `json:"total"`
+	Data    interface{} `json:"data"`
+	Code    int         `json:"code"`
+	Message string      `json:"msg"`
+}
+
+func ResponseCommon(w http.ResponseWriter, data interface{}, msg string, total int, tag int, code int) {
+	var rq RequestResult
+	rq.Data = data
+	rq.Total = total
+	rq.Code = code
+	rq.Message = msg
+	jsonStr, err := json.Marshal(rq)
+	if err != nil {
+		log.Fatalf("%v\n", err)
+	}
+	w.WriteHeader(tag)
+	_, _ = fmt.Fprintf(w, string(jsonStr))
+}
+
+func CreateUUID() string {
+	u1 := uuid.NewV4()
+	return u1.String()
 }

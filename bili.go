@@ -9,6 +9,7 @@ import (
 	"math/rand"
 	"net/http"
 	"regexp"
+	"sync"
 	"time"
 )
 
@@ -41,6 +42,7 @@ type BiliUser struct {
 	Cron          string     `json:"cron"`                      // Config -> 执行表达式
 	FT            string     `json:"ft"`                        // Config -> 方糖[可选]
 	FTSwitch      bool       `json:"ft_switch"`                 // Config -> 方糖开关
+	Job           *cron.Cron
 }
 
 type ABi struct {
@@ -131,7 +133,7 @@ func (biu *BiliUser) GetQRCode() error {
 	return nil
 }
 
-// 获取登录信息
+// 获取登录信息 Cron
 func (biu *BiliUser) GetBiliLoginInfo(cron *cron.Cron) {
 	url := "https://passport.bilibili.com/qrcode/getLoginInfo"
 
@@ -179,6 +181,56 @@ func (biu *BiliUser) GetBiliLoginInfo(cron *cron.Cron) {
 			biu.InfoUpdate()
 		} else {
 			Info(result.Message)
+		}
+	}
+}
+
+// 获取登录信息
+func (biu *BiliUser) LoginCallback(callback func(isLogin bool)) {
+	url := "https://passport.bilibili.com/qrcode/getLoginInfo"
+
+	data := "oauthKey=" + biu.OAuth.OAuthKey + "&gourl=" + "https%3A%2F%2Fwww.bilibili.com%2F"
+	res, err := Post2(url, func(reqPoint *http.Request) {
+
+		cookie1 := &http.Cookie{Name: "_uuid", Value: biu.UUID}
+		cookie2 := &http.Cookie{Name: "buvid3", Value: biu.BuVID}
+		cookie3 := &http.Cookie{Name: "sid", Value: biu.SID}
+		cookie4 := &http.Cookie{Name: "finger", Value: GetConfig().Finger}
+		cookie0 := &http.Cookie{Name: "PVID", Value: "4"}
+
+		reqPoint.AddCookie(cookie0)
+		reqPoint.AddCookie(cookie1)
+		reqPoint.AddCookie(cookie2)
+		reqPoint.AddCookie(cookie3)
+		reqPoint.AddCookie(cookie4)
+
+		reqPoint.Header.Add("accept", "application/json, text/javascript, */*; q=0.01")
+		reqPoint.Header.Add("accept-encoding", "deflate, br")
+		reqPoint.Header.Add("origin", "https://passport.bilibili.com")
+		reqPoint.Header.Add("referer", "https://passport.bilibili.com/login")
+		reqPoint.Header.Add("sec-fetch-dest", "empty")
+		reqPoint.Header.Add("sec-fetch-mode", "cors")
+		reqPoint.Header.Add("sec-fetch-site", "same-origin")
+
+		reqPoint.Header.Add("x-requested-with", "XMLHttpRequest")
+		reqPoint.Header.Add("content-type", "application/x-www-form-urlencoded; charset=UTF-8")
+	}, data)
+
+	if res != nil && err == nil {
+		var result BiliInfo
+
+		_ = json.NewDecoder(res.Body).Decode(&result)
+		cookies := res.Cookies()
+		if len(cookies) == 8 {
+			biu.DedeUserID = cookies[0].Value
+			biu.DedeUserIDMD5 = cookies[2].Value
+			biu.SESSDATA = cookies[4].Value
+			biu.BiliJCT = cookies[6].Value
+			biu.Login = true
+			callback(true)
+			biu.InfoUpdate()
+		} else {
+			callback(false)
 		}
 	}
 }
@@ -325,10 +377,14 @@ func (biu *BiliUser) RandDrop() {
 	biu.DropCoin(bvs[randIndex])
 }
 
+var taskMap sync.Map
+
 // 投币任务
 func (biu *BiliUser) DropTaskStart() {
 	c := cron.New()
-	Info("cron add task", logrus.Fields{"UID": biu.DedeUserID, "Cron": biu.Cron})
+	uuid := CreateUUID()
+	taskMap.Store(uuid, c)
+	Info("cron add task", logrus.Fields{"UID": biu.DedeUserID, "Cron": biu.Cron, "TaskID": uuid})
 	_ = c.AddFunc(biu.Cron, func() {
 		biu.GetBiliCoinLog()
 		Info("get coin log", logrus.Fields{"UID": biu.DedeUserID, "dropCount": biu.DropCoinCount})
@@ -347,6 +403,7 @@ func (biu *BiliUser) DropTaskStart() {
 		Info("cron finish", logrus.Fields{"UID": biu.DedeUserID})
 	})
 	c.Start()
+
 }
 
 // 注册所有投币任务
@@ -357,6 +414,7 @@ func CronTaskLoad() {
 		return
 	}
 	for k, _ := range bius {
+		bius[k].GetBiliCoinLog()
 		bius[k].DropTaskStart()
 	}
 }

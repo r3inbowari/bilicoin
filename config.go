@@ -15,6 +15,7 @@ import (
  */
 type LocalConfig struct {
 	Finger      string     `json:"finger"`    // canvas指纹
+	APIAddr     string     `json:"api_addr"`  // API服务ADDR
 	CacheTime   time.Time  `json:"-"`         // 缓存时间
 	LoggerLevel *string    `json:"log_level"` // 日志等级
 	BiU         []BiliUser `json:"biu"`       // 用户集合

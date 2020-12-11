@@ -19,6 +19,7 @@ type cmdOptions struct {
 	List   bool `short:"l" long:"list" description:"show all users"`
 	FT     bool `short:"f" long:"ft" description:"set ftqq secret key"`
 	Cron   bool `short:"c" long:"cron" description:"update cron spec"`
+	API    bool `short:"a" long:"api" description:"run api server"`
 }
 
 func showHelp() {
@@ -171,6 +172,9 @@ func release() {
 		// 运行
 		bilicoin.CronTaskLoad()
 		select {}
+	} else if opts.API {
+		// 运行
+		bilicoin.RunBiliCoinAPI()
 	} else {
 		ret = 10
 		showHelp()
