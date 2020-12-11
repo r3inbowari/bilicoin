@@ -14,12 +14,10 @@ import (
  * local config struct
  */
 type LocalConfig struct {
-	Finger      string     `json:"finger"` // 帆布指纹识别
-	FT          string     `json:"ft"`
-	CacheTime   time.Time  `json:"-"`
-	LoggerLevel *string    `json:"log_level"`
-	BiU         []BiliUser `json:"biu"`
-	Cron        string     `json:"cron"`
+	Finger      string     `json:"finger"`    // canvas指纹
+	CacheTime   time.Time  `json:"-"`         // 缓存时间
+	LoggerLevel *string    `json:"log_level"` // 日志等级
+	BiU         []BiliUser `json:"biu"`       // 用户集合
 }
 
 var config = new(LocalConfig)

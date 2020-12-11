@@ -129,19 +129,7 @@ func InitConfig() {
 		config.Finger = "1777945899"
 		config.LoggerLevel = &l
 		config.BiU = []BiliUser{}
-		config.Cron = "30 50 23 * * ?"
 		_ = config.SetConfig()
-	}
-}
-
-func SendMessage2WeChat(title string, content ...string) {
-	ft := GetConfig().FT
-	if ft != "" {
-		if len(content) > 0 {
-			GetRequest("https://sc.ftqq.com/" + ft + ".send?desp=" + content[0] + "&text=" + title)
-		} else {
-			GetRequest("https://sc.ftqq.com/" + ft + ".send?text=" + title)
-		}
 	}
 }
 

@@ -3,6 +3,7 @@ package bilicoin
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/robfig/cron"
 	"github.com/sirupsen/logrus"
 	"math/rand"
@@ -12,56 +13,60 @@ import (
 )
 
 type BiliQRCode struct {
-	Data      QRCodeData `json:"data"`
-	Timestamp int64      `json:"ts"`
-	Status    bool       `json:"status"`
-	Code      int        `json:"code"`
+	Data      QRCodeData `json:"data"`   // QR数据
+	Timestamp int64      `json:"ts"`     // 时间戳
+	Status    bool       `json:"status"` // 扫描状态
+	Code      int        `json:"code"`   // 状态码
 }
 
 type QRCodeData struct {
-	Url      string `json:"url"`
-	OAuthKey string `json:"oauthKey"`
+	Url      string `json:"url"`      // 地址
+	OAuthKey string `json:"oauthKey"` // oa-key
 }
 
 type BiliUser struct {
-	UUID          string     `json:"_uuid"`
-	BuVID         string     `json:"buvid"`
-	OAuth         QRCodeData `json:"oauth"`
-	SID           string     `json:"sid"`
-	BiliJCT       string     `json:"bili_jct"`
-	SESSDATA      string     `json:"SESSDATA"`
-	DedeUserID    string     `json:"uid"`
-	DedeUserIDMD5 string     `json:"DedeUserID__ckMd5"`
-	Bi            ABi        `json:"bi"`
-	Login         bool       `json:"login"`
-	Expire        time.Time  `json:"expire"`
-	DropCoinCount int        `json:"drop_coin_count,omitempty"`
-	BlockBVList   []string   `json:"block_bv_list"`
+	UUID          string     `json:"_uuid"`                     // CooKie -> UUID
+	BuVID         string     `json:"buvid"`                     // CooKie -> Buv跟踪
+	OAuth         QRCodeData `json:"oauth"`                     // CooKie -> QR登录信息
+	SID           string     `json:"sid"`                       // CooKie -> SID
+	BiliJCT       string     `json:"bili_jct"`                  // CooKie -> JCT
+	SESSDATA      string     `json:"SESSDATA"`                  // CooKie -> Session
+	DedeUserID    string     `json:"uid"`                       // CooKie -> UID
+	DedeUserIDMD5 string     `json:"DedeUserID__ckMd5"`         // CooKie -> UID_Decode
+	Bi            ABi        `json:"bi"`                        // Config -> 用户信息
+	Login         bool       `json:"login"`                     // Config -> 弃用
+	Expire        time.Time  `json:"expire"`                    // CooKie -> 失效时间
+	DropCoinCount int        `json:"drop_coin_count,omitempty"` // Config -> 当天投币数量
+	BlockBVList   []string   `json:"block_bv_list"`             // Config -> 禁止列表
+	Cron          string     `json:"cron"`                      // Config -> 执行表达式
+	FT            string     `json:"ft"`                        // Config -> 方糖[可选]
+	FTSwitch      bool       `json:"ft_switch"`                 // Config -> 方糖开关
 }
 
 type ABi struct {
-	BCoins    int       `json:"bCoins"` // B柯拉
-	Coins     int       `json:"coins"`  // 硬币
-	Nick      string    `json:"uname"`
-	Face      string    `json:"face"`
-	Status    string    `json:"userStatus"`
-	LevelInfo LevelInfo `json:"level_info"`
+	BCoins    int       `json:"bCoins"`     // B柯拉
+	Coins     int       `json:"coins"`      // 硬币
+	Nick      string    `json:"uname"`      // 昵称
+	Face      string    `json:"face"`       // 头像地址
+	Status    string    `json:"userStatus"` // 账号状态
+	LevelInfo LevelInfo `json:"level_info"` // 等级
 }
 
 type LevelInfo struct {
-	CurrentLevel int `json:"current_level"`
-	CurrentMin   int `json:"current_min"`
-	CurrentExp   int `json:"current_exp"`
-	NextExp      int `json:"next_exp"`
+	CurrentLevel int `json:"current_level"` // 当前等级
+	CurrentMin   int `json:"current_min"`   // 最小经验
+	CurrentExp   int `json:"current_exp"`   // 当前经验
+	NextExp      int `json:"next_exp"`      // 下一等级
 }
 
+// bilibili 标准响应
 type BiliInfo struct {
-	Status    string   `json:"status"`
-	Data      BiliData `json:"data"`
-	Message   string   `json:"message"`
-	Timestamp int64    `json:"ts"`
-	TTL       int      `json:"ttl"`
-	Code      int      `json:"code"`
+	Status    string   `json:"status"`  // 响应状态
+	Data      BiliData `json:"data"`    // 数据
+	Message   string   `json:"message"` // 消息
+	Timestamp int64    `json:"ts"`      // ts
+	TTL       int      `json:"ttl"`     // 生存
+	Code      int      `json:"code"`    // 响应代码
 }
 
 type BiliData struct {
@@ -71,12 +76,12 @@ type BiliData struct {
 }
 
 type CoinLog struct {
-	Time   string `json:"time"`
-	Delta  int    `json:"delta"`
-	Reason string `json:"reason"`
+	Time   string `json:"time"`   // 时间
+	Delta  int    `json:"delta"`  // 增量
+	Reason string `json:"reason"` // 原因
 }
 
-var Version = "v1.0.2 build on 08 12 2020 fb38f8f..53a9431 master"
+var releaseVersion = "v1.0.2 build on 08 12 2020 fb38f8f..53a9431 master" // release tag
 
 // 创建用户
 func CreateUser() (*BiliUser, error) {
@@ -88,6 +93,9 @@ func CreateUser() (*BiliUser, error) {
 	if biu.BuVID, err = _buvidGenerate(); err != nil {
 		return nil, err
 	}
+	biu.Cron = "30 50 23 * * ?"
+	biu.FT = ""
+	biu.FTSwitch = false
 	return &biu, err
 }
 
@@ -157,7 +165,7 @@ func (biu *BiliUser) GetBiliLoginInfo(cron *cron.Cron) {
 	if res != nil && err == nil {
 		var result BiliInfo
 
-		json.NewDecoder(res.Body).Decode(&result)
+		_ = json.NewDecoder(res.Body).Decode(&result)
 		cookies := res.Cookies()
 		if len(cookies) == 8 {
 			cron.Stop()
@@ -167,7 +175,6 @@ func (biu *BiliUser) GetBiliLoginInfo(cron *cron.Cron) {
 			biu.BiliJCT = cookies[6].Value
 			biu.Login = true
 			Info("Login Succeed~", logrus.Fields{"UID": biu.DedeUserID})
-			// biu.GetBiliCoinLog()
 
 			biu.InfoUpdate()
 		} else {
@@ -176,7 +183,7 @@ func (biu *BiliUser) GetBiliLoginInfo(cron *cron.Cron) {
 	}
 }
 
-// 更新信息
+// 更新配置树
 func (biu *BiliUser) InfoUpdate() {
 	conf := GetConfig()
 	for k, _ := range conf.BiU {
@@ -194,7 +201,7 @@ func (biu *BiliUser) InfoUpdate() {
 	}
 }
 
-// 等待扫描
+// 等待登录扫描
 func (biu *BiliUser) BiliScanAwait() {
 	i := 0
 	c := cron.New()
@@ -218,7 +225,7 @@ func (biu *BiliUser) GetBiliCoinLog() {
 
 	if res != nil && err == nil {
 		var msg BiliInfo
-		json.NewDecoder(res.Body).Decode(&msg)
+		_ = json.NewDecoder(res.Body).Decode(&msg)
 
 		bl, _ := json.Marshal(msg)
 		reg := regexp.MustCompile("BV[a-zA-Z0-9_]+")
@@ -241,6 +248,7 @@ func (biu *BiliUser) GetBiliCoinLog() {
 	Info("coin log", logrus.Fields{"dropCount": biu.DropCoinCount, "UID": biu.DedeUserID})
 }
 
+// bilibili标准头部
 func (biu *BiliUser) NormalAuthHeader(reqPoint *http.Request) {
 	cookie3 := &http.Cookie{Name: "sid", Value: biu.SID}
 	cookie1 := &http.Cookie{Name: "_uuid", Value: biu.UUID}
@@ -269,11 +277,12 @@ func (biu *BiliUser) NormalAuthHeader(reqPoint *http.Request) {
 	reqPoint.Header.Add("sec-fetch-site", "same-origin")
 }
 
+// 打赏逻辑
 func (biu *BiliUser) DropCoin(bv string) {
 	aid := BVCovertDec(bv)
 	if biu.DropCoinCount > 4 {
 		Info("number of coins tossed today >= 5", logrus.Fields{"BVID": bv, "AVID": aid, "UID": biu.DedeUserID, "dropCount": biu.DropCoinCount})
-		SendMessage2WeChat(biu.DedeUserID + "打赏上限")
+		biu.SendMessage2WeChat(biu.DedeUserID + "打赏上限")
 		return
 	}
 	url := "https://api.bilibili.com/x/web-interface/coin/add?" + "aid=" + aid + "&multiply=1&select_like=1&cross_domain=true&csrf=" + biu.BiliJCT
@@ -290,9 +299,21 @@ func (biu *BiliUser) DropCoin(bv string) {
 		if msg.Message == "0" {
 			biu.DropCoinCount++
 			Info("Drop coin succeed", logrus.Fields{"BVID": bv, "AVID": aid, "UID": biu.DedeUserID, "dropCount": biu.DropCoinCount})
-			SendMessage2WeChat(biu.DedeUserID + "打赏" + bv + "成功")
+			biu.SendMessage2WeChat(biu.DedeUserID + "打赏" + bv + "成功")
 		} else if msg.Message == "超过投币上限啦~" {
 			Info("Drop coin limited", logrus.Fields{"BVID": bv, "AVID": aid, "UID": biu.DedeUserID, "dropCount": biu.DropCoinCount})
+		}
+	}
+}
+
+// 方糖
+func (biu *BiliUser) SendMessage2WeChat(title string, content ...string) {
+	ft := biu.FT
+	if biu.FTSwitch && ft != "" {
+		if len(content) > 0 {
+			GetRequest("https://sc.ftqq.com/" + ft + ".send?desp=" + content[0] + "&text=" + title)
+		} else {
+			GetRequest("https://sc.ftqq.com/" + ft + ".send?text=" + title)
 		}
 	}
 }
@@ -304,10 +325,47 @@ func (biu *BiliUser) RandDrop() {
 	biu.DropCoin(bvs[randIndex])
 }
 
+// 投币任务
+func (biu *BiliUser) DropTaskStart() {
+	c := cron.New()
+	Info("cron add task", logrus.Fields{"UID": biu.DedeUserID, "Cron": biu.Cron})
+	_ = c.AddFunc(biu.Cron, func() {
+		biu.GetBiliCoinLog()
+		Info("get coin log", logrus.Fields{"UID": biu.DedeUserID, "Cron": biu.DropCoinCount})
+		if biu.DropCoinCount > 4 {
+			Info("cron task not need", logrus.Fields{"UID": biu.DedeUserID})
+			return
+		}
+		for true {
+			if biu.DropCoinCount > 4 {
+				break
+			}
+			biu.RandDrop()
+			time.Sleep(Random(60))
+		}
+		Info("cron finish", logrus.Fields{"UID": biu.DedeUserID})
+	})
+	c.Start()
+}
+
+// 注册所有投币任务
+func CronTaskLoad() {
+	bius := GetConfig().BiU
+	if len(bius) == 0 {
+		Info("not found users")
+		return
+	}
+	for k, _ := range bius {
+		bius[k].DropTaskStart()
+	}
+}
+
+// 获取所有UID实体
 func LoadUser() []BiliUser {
 	return GetConfig().BiU
 }
 
+// 尝试通过UID获取一个UID实体
 func GetUser(uid string) (*BiliUser, error) {
 	users := LoadUser()
 	for k, _ := range users {
@@ -319,7 +377,7 @@ func GetUser(uid string) (*BiliUser, error) {
 	return nil, errors.New("not found user")
 }
 
-// try to delete target uid
+// 尝试删除Config中一个UID配置实体
 func DelUser(uid string) error {
 	users := LoadUser()
 	for k, _ := range users {
@@ -332,7 +390,7 @@ func DelUser(uid string) error {
 	return errors.New("not found user")
 }
 
-// get all uid
+// 获取Config中所有已知UID的String
 func GetAllUID() []string {
 	users := LoadUser()
 	var retVal []string
@@ -342,29 +400,9 @@ func GetAllUID() []string {
 	return retVal
 }
 
-// auto drop
-func CronDrop(biu BiliUser) {
-	c := cron.New()
-	_ = c.AddFunc(GetConfig().Cron, func() {
-		biu.GetBiliCoinLog()
-		for i := 0; i < 5; i++ {
-			biu.RandDrop()
-			time.Sleep(Random(60))
-		}
-		Info("cron finish", logrus.Fields{"UID": biu.DedeUserID})
-	})
-	c.Start()
-}
-
-// reg drop func
-func CronDropReg() {
-	bius := GetConfig().BiU
-	if len(bius) == 0 {
-		println("not found users")
-		return
-	}
-	for k, _ := range bius {
-		println("cron - add user " + bius[k].DedeUserID)
-		CronDrop(bius[k])
-	}
+// bilicoin初始化
+func InitBili() {
+	fmt.Println("bilicoin " + releaseVersion)
+	InitConfig()
+	InitLogger()
 }

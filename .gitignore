@@ -4,5 +4,4 @@ cmd/cmd
 cmd/example
 cmd/bilicoin_linux_amd64
 cmd/bilicoin_linux_arm64
-cmd/bili.json
-test/bili.json
+bili.json
