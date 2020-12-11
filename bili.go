@@ -232,7 +232,7 @@ func (biu *BiliUser) GetBiliCoinLog() {
 		g := reg.FindAllString(string(bl), -1)
 		biu.BlockBVList = g
 		biu.InfoUpdate()
-
+		biu.DropCoinCount = 0 // init and recount
 		for k, _ := range msg.Data.List {
 			if isToday(msg.Data.List[k].Time) {
 				reg := regexp.MustCompile("BV[a-zA-Z0-9_]+")
@@ -331,13 +331,14 @@ func (biu *BiliUser) DropTaskStart() {
 	Info("cron add task", logrus.Fields{"UID": biu.DedeUserID, "Cron": biu.Cron})
 	_ = c.AddFunc(biu.Cron, func() {
 		biu.GetBiliCoinLog()
-		Info("get coin log", logrus.Fields{"UID": biu.DedeUserID, "Cron": biu.DropCoinCount})
+		Info("get coin log", logrus.Fields{"UID": biu.DedeUserID, "dropCount": biu.DropCoinCount})
 		if biu.DropCoinCount > 4 {
 			Info("cron task not need", logrus.Fields{"UID": biu.DedeUserID})
 			return
 		}
 		for true {
 			if biu.DropCoinCount > 4 {
+				biu.InfoUpdate()
 				break
 			}
 			biu.RandDrop()
