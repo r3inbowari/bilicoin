@@ -319,6 +319,7 @@ func GetUser(uid string) (*BiliUser, error) {
 	return nil, errors.New("not found user")
 }
 
+// try to delete target uid
 func DelUser(uid string) error {
 	users := LoadUser()
 	for k, _ := range users {
@@ -331,6 +332,7 @@ func DelUser(uid string) error {
 	return errors.New("not found user")
 }
 
+// get all uid
 func GetAllUID() []string {
 	users := LoadUser()
 	var retVal []string
@@ -340,6 +342,7 @@ func GetAllUID() []string {
 	return retVal
 }
 
+// auto drop
 func CronDrop(biu BiliUser) {
 	c := cron.New()
 	_ = c.AddFunc(GetConfig().Cron, func() {
@@ -353,6 +356,7 @@ func CronDrop(biu BiliUser) {
 	c.Start()
 }
 
+// reg drop func
 func CronDropReg() {
 	bius := GetConfig().BiU
 	if len(bius) == 0 {
