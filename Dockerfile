@@ -1,5 +1,5 @@
 # bilicoin service Dockerfile
-# version 1.0.2
+# version 1.0.3
 # author r3inbowari
 FROM golang:1.14 as builder
 LABEL stage="builder"
