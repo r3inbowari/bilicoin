@@ -23,4 +23,4 @@ WORKDIR /app
 
 COPY --from=builder /app/example .
 
-ENTRYPOINT ["./example", "-s"]
+ENTRYPOINT ["./example", "-a"]
