@@ -9,6 +9,7 @@
 5. 支持 `QRCode` 登录，无需手动粘贴 `Cookie`  
 6. 支持多用户批量处理  
 7. 支持通过 `API` 进行控制  
+8. [Demo 查看](http://r3inbowari.top:9090/version "Demo")
 
 ## 获取工具
 项目请自行编译或者从 Release 中下载  
@@ -36,12 +37,14 @@
     ./bilicoin_linux_amd64 -s
     ```
 
-## 通过 `API` 使用  
-1. 命令行输入下面内容，进入服务器模式
+## 通过 `API` 使用(需要自己开发界面)  
+1. 命令行输入下面内容，进入服务器模式  
     ```
     ./bilicoin_linux_amd64 -a
     ```
-2. 基本请求
+2. 基本请求  
+   详细的请求和响应格式可以看[这里](https://docs.apipost.cn/view/8ab6ae6778a3b405 "API DOC")  
+   
     ```
     获得所有用户
     GET /users
@@ -118,7 +121,7 @@
     docker pull r3inbowari/bilicoin
     ```
 
-3. 运行即可  
+3. 直接运行即可  
    
     ```
     // run
@@ -128,7 +131,12 @@
     -itd --restart=always \
     r3inbowari/bilicoin:v1.0.3
     ```
-
+    
+4. 浏览器打开地址验证是否开启  
+   ```
+   GET http://localhost:9090/version
+   ```
+   
 ## 其他问题  
 1. `bili.json` 中的 `canvas_finger` 的值可以选择修改一下，不过不影响使用。  
 2. 多用户投币重复使用二维码方式登录即可。  
