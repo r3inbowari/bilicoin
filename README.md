@@ -51,9 +51,9 @@
     
     添加用户请求
     POST /user
-    Response oauthData(二维码地址)
+    Response oauthData(注意二维码是这种格式https://passport.bilibili.com/qrcode/h5/login?oauthKey=c44d66aa771148b6360ddf70876e6684)
     
-    轮询是否登陆成功
+    轮询是否登陆成功(带上oauth参数即可，oauth参数即上面的oauthData)
     POST /user?oauth=3835a3c053dcda56c0c0136110f69ec9 
     
     试图删除一个UID
