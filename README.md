@@ -1,4 +1,8 @@
-# bilicoin 自动投币工具
+<div> 
+   <h1 align="center">
+      bilicoin 自动投币工具
+   </h1>
+</div>
 
 ## 说明
 1. 在B站，每日会自动投入补全 50 经验，帮助你快速升级。   
