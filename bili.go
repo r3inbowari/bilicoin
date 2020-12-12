@@ -83,7 +83,7 @@ type CoinLog struct {
 	Reason string `json:"reason"` // 原因
 }
 
-var releaseVersion = "v1.0.2 build on 08 12 2020 fb38f8f..53a9431 master" // release tag
+var releaseVersion = "v1.0.3 build on 12 12 2020 89473e7..c5542bc master" // release tag
 
 // 创建用户
 func CreateUser() (*BiliUser, error) {
