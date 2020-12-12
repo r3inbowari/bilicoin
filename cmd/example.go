@@ -44,6 +44,8 @@ Options:
   -c, --cron
     Try to update cron spec for a provided user
     eg: bilicoin -f 10023442 30 16 1 * * ?
+  -a, --api
+    Run api server
 `
 	_, _ = os.Stderr.Write([]byte(v))
 	println()
