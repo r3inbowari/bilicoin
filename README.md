@@ -52,6 +52,7 @@
     ```
     获得所有用户
     GET /users
+    eg: http://r3inbowari.top:9090/users
     
     添加用户请求
     POST /user
