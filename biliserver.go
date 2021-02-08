@@ -10,10 +10,10 @@ import (
 	"time"
 )
 
-func RunBiliCoinAPI() {
-	Info("open bilicoin api service")
+func BCApplication() {
+	Info("bilicoin api service running")
 	reset()
-	Info("listening succeeded on " + GetConfig().APIAddr)
+	Info("listened on " + GetConfig().APIAddr)
 	r := mux.NewRouter()
 
 	r.HandleFunc("/{uid}/ft", HandleFT)

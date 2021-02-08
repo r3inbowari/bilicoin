@@ -176,7 +176,7 @@ func release() {
 		select {}
 	} else if opts.API {
 		// 运行
-		bilicoin.RunBiliCoinAPI()
+		bilicoin.BCApplication()
 	} else {
 		ret = 10
 		showHelp()

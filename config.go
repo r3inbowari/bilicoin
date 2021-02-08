@@ -52,7 +52,7 @@ func (lc *LocalConfig) SetConfig() error {
 	if err != nil {
 		Fatal("write file failed", logrus.Fields{"err": err})
 	}
-	Info("already update config file", logrus.Fields{"size": n})
+	Info("[FILE] Update user configuration", logrus.Fields{"size": n})
 	return nil
 }
 

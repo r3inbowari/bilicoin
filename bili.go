@@ -3,7 +3,6 @@ package bilicoin
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/robfig/cron"
 	"github.com/sirupsen/logrus"
 	"math/rand"
@@ -83,7 +82,8 @@ type CoinLog struct {
 	Reason string `json:"reason"` // 原因
 }
 
-var releaseVersion = "v1.0.3 build on 12 12 2020 89473e7..c5542bc master" // release tag
+var releaseVersion = "v1.0.3" // release tag
+var releaseTag = "89473e7..c5542bc @master"
 
 // 创建用户
 func CreateUser() (*BiliUser, error) {
@@ -461,7 +461,7 @@ func GetAllUID() []string {
 
 // bilicoin初始化
 func InitBili() {
-	fmt.Println("bilicoin " + releaseVersion)
+	AppInfo()
 	InitConfig()
-	InitLogger()
+	// InitLogger()
 }
