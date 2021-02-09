@@ -44,7 +44,14 @@ func fieldParse(obj interface{}) string {
 
 func newEntry(msg string, level logrus.Level) Entry {
 	t := time.Now().Format("2006-01-02 15:04:05")
-	str := "[INFO] " + t + " " + msg
+	var str string
+	if level == logrus.InfoLevel {
+		str = "[INFO] " + t + " " + msg
+	} else if level == logrus.WarnLevel {
+		str = "[WARN] " + t + " " + msg
+	} else if level == logrus.FatalLevel {
+		str = "[FATAL] " + t + " " + msg
+	}
 	return Entry{msg: str, level: level}
 }
 

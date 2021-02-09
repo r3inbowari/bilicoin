@@ -48,13 +48,14 @@ func HandleFT(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	uid := vars["uid"]
 	key := r.Form.Get("key")
+	sw := r.Form.Get("sw")
 
 	if biu, ok := GetUser(uid); ok == nil && biu != nil {
 		if key != "" {
 			biu.FT = key
 			biu.FTSwitch = true
 		}
-		if r.Form.Get("sw") == "0" {
+		if sw == "0" {
 			biu.FTSwitch = false
 		} else {
 			biu.FTSwitch = true
