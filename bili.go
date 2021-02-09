@@ -242,14 +242,14 @@ func (biu *BiliUser) InfoUpdate() {
 		if biu.DedeUserID == conf.BiU[k].DedeUserID {
 			conf.BiU[k] = *biu
 			if err := conf.SetConfig(); err != nil {
-				Warn("error json setting")
+				Warn("[FILE] error json setting")
 			}
 			return
 		}
 	}
 	conf.BiU = append(conf.BiU, *biu)
 	if err := conf.SetConfig(); err != nil {
-		Warn("error json setting")
+		Warn("[FILE] error json setting")
 	}
 }
 
@@ -297,7 +297,7 @@ func (biu *BiliUser) GetBiliCoinLog() {
 			}
 		}
 	}
-	Info("coin log", logrus.Fields{"dropCount": biu.DropCoinCount, "UID": biu.DedeUserID})
+	Info("[USER] Drop history", logrus.Fields{"dropCount": biu.DropCoinCount, "UID": biu.DedeUserID})
 }
 
 // bilibili标准头部
@@ -333,7 +333,7 @@ func (biu *BiliUser) NormalAuthHeader(reqPoint *http.Request) {
 func (biu *BiliUser) DropCoin(bv string) {
 	aid := BVCovertDec(bv)
 	if biu.DropCoinCount > 4 {
-		Info("number of coins tossed today >= 5", logrus.Fields{"BVID": bv, "AVID": aid, "UID": biu.DedeUserID, "dropCount": biu.DropCoinCount})
+		Warn("number of coins tossed today >= 5", logrus.Fields{"BVID": bv, "AVID": aid, "UID": biu.DedeUserID, "dropCount": biu.DropCoinCount})
 		biu.SendMessage2WeChat(biu.DedeUserID + "打赏上限")
 		return
 	}
@@ -350,10 +350,10 @@ func (biu *BiliUser) DropCoin(bv string) {
 		_ = json.NewDecoder(res.Body).Decode(&msg)
 		if msg.Message == "0" {
 			biu.DropCoinCount++
-			Info("Drop coin succeed", logrus.Fields{"BVID": bv, "AVID": aid, "UID": biu.DedeUserID, "dropCount": biu.DropCoinCount})
+			Info("[TASK] Drop succeed", logrus.Fields{"BVID": bv, "AVID": aid, "UID": biu.DedeUserID, "dropCount": biu.DropCoinCount})
 			biu.SendMessage2WeChat(biu.DedeUserID + "打赏" + bv + "成功")
 		} else if msg.Message == "超过投币上限啦~" {
-			Info("Drop coin limited", logrus.Fields{"BVID": bv, "AVID": aid, "UID": biu.DedeUserID, "dropCount": biu.DropCoinCount})
+			Info("[TASK] Drop limited", logrus.Fields{"BVID": bv, "AVID": aid, "UID": biu.DedeUserID, "dropCount": biu.DropCoinCount})
 		}
 	}
 }
@@ -384,14 +384,9 @@ func (biu *BiliUser) DropTaskStart() {
 	c := cron.New()
 	uuid := CreateUUID()
 	taskMap.Store(uuid, c)
-	Info("cron add task", logrus.Fields{"UID": biu.DedeUserID, "Cron": biu.Cron, "TaskID": uuid})
+	Info("[CRON] Add task", logrus.Fields{"UID": biu.DedeUserID, "Cron": biu.Cron, "TaskID": uuid})
 	_ = c.AddFunc(biu.Cron, func() {
 		biu.GetBiliCoinLog()
-		Info("get coin log", logrus.Fields{"UID": biu.DedeUserID, "dropCount": biu.DropCoinCount})
-		if biu.DropCoinCount > 4 {
-			Info("cron task not need", logrus.Fields{"UID": biu.DedeUserID})
-			return
-		}
 		for true {
 			if biu.DropCoinCount > 4 {
 				biu.InfoUpdate()
@@ -400,17 +395,16 @@ func (biu *BiliUser) DropTaskStart() {
 			biu.RandDrop()
 			time.Sleep(Random(60))
 		}
-		Info("cron finish", logrus.Fields{"UID": biu.DedeUserID})
+		Info("[CRON] Task Completed", logrus.Fields{"UID": biu.DedeUserID})
 	})
 	c.Start()
-
 }
 
 // 注册所有投币任务
 func CronTaskLoad() {
 	bius := GetConfig().BiU
 	if len(bius) == 0 {
-		Info("not found users")
+		Info("[USER] Not found users")
 		return
 	}
 	for k, _ := range bius {
@@ -461,7 +455,6 @@ func GetAllUID() []string {
 
 // bilicoin初始化
 func InitBili() {
-	AppInfo()
 	InitConfig()
 	// InitLogger()
 }
