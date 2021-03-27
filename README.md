@@ -157,3 +157,5 @@
 1. `bili.json` 中的 `canvas_finger` 是 `canvas-base64` 生成的随机数值, 可以选择修改一下，不过不影响使用。  
 2. 多用户投币重复使用二维码方式登录即可。  
 3. 重复登录同一个账号时，该账号的上一次登录信息将会被覆盖。  
+4. 实测可以从路由器启动
+![mipsle](https://user-images.githubusercontent.com/30739857/112732835-5717f480-8f77-11eb-9ba1-148b308ed9d3.png)
