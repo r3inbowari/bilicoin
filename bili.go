@@ -84,7 +84,7 @@ type CoinLog struct {
 }
 
 var releaseVersion = "v1.0.4" // release tag
-var releaseTag = "b4ac8f4..6599638 @master"
+var releaseTag = "77acade..9dd477d @master"
 var mode = ""
 
 const (
