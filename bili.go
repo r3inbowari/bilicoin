@@ -7,6 +7,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"math/rand"
 	"net/http"
+	"os"
 	"regexp"
 	"sync"
 	"time"
@@ -82,7 +83,7 @@ type CoinLog struct {
 	Reason string `json:"reason"` // 原因
 }
 
-var releaseVersion = "v1.0.3" // release tag
+var releaseVersion = "v1.0.4" // release tag
 var releaseTag = "89473e7..c5542bc @master"
 
 // 创建用户
@@ -402,7 +403,15 @@ func (biu *BiliUser) DropTaskStart() {
 
 // 注册所有投币任务
 func CronTaskLoad() {
+	// panic: if not biu in config file
+	// exit code 1001
 	bius := GetConfig().BiU
+	if len(bius) == 0 {
+		Info("[CRON] EXIT 1001")
+		Warn("[CRON] biu not found: please make sure that at least one user cookies exists in bili.json file")
+		Warn("[CRON] tip: use '-n' option to create a new user cookies by bilibili-mobile-client QR Login")
+		os.Exit(1001)
+	}
 	if len(bius) == 0 {
 		Info("[USER] Not found users")
 		return

@@ -31,7 +31,7 @@ func BCApplication() {
 		gcors.WithHeaders("Authorization"),
 	)
 	log.Fatal(http.ListenAndServe(GetConfig().APIAddr, cors))
-
+	// goroutine block here not need sleep
 	time.Sleep(time.Hour)
 }
 
