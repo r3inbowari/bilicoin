@@ -10,10 +10,10 @@ import (
 	"time"
 )
 
-func RunBiliCoinAPI() {
-	Info("open bilicoin api service")
+func BCApplication() {
+	Info("[BCS] BILICOIN api mode running")
 	reset()
-	Info("listening succeeded on " + GetConfig().APIAddr)
+	Info("[BCS] Listened on " + GetConfig().APIAddr)
 	r := mux.NewRouter()
 
 	r.HandleFunc("/{uid}/ft", HandleFT)
@@ -31,7 +31,7 @@ func RunBiliCoinAPI() {
 		gcors.WithHeaders("Authorization"),
 	)
 	log.Fatal(http.ListenAndServe(GetConfig().APIAddr, cors))
-
+	// goroutine block here not need sleep
 	time.Sleep(time.Hour)
 }
 
@@ -48,19 +48,20 @@ func HandleFT(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	uid := vars["uid"]
 	key := r.Form.Get("key")
+	sw := r.Form.Get("sw")
 
 	if biu, ok := GetUser(uid); ok == nil && biu != nil {
 		if key != "" {
 			biu.FT = key
 			biu.FTSwitch = true
 		}
-		if r.Form.Get("sw") == "0" {
+		if sw == "0" {
 			biu.FTSwitch = false
 		} else {
 			biu.FTSwitch = true
 		}
 		biu.InfoUpdate()
-		Info("ftqq secret save completed by web", logrus.Fields{"UID": uid, "Key": key})
+		Info("[BCS] FTQQ secret key save completed", logrus.Fields{"UID": uid, "Key": key})
 	}
 	ResponseCommon(w, "try succeed", "ok", 1, http.StatusOK, 0)
 }
@@ -73,20 +74,20 @@ func HandleCron(w http.ResponseWriter, r *http.Request) {
 
 	if biu, ok := GetUser(uid); ok == nil && biu != nil {
 		if _, err := cron.Parse(cronStr); err != nil {
-			ResponseCommon(w, "incorrect cron spec, please check and try again", "ok", 1, http.StatusOK, 0)
-			Info("incorrect cron spec, please check and try again", logrus.Fields{"UID": uid, "Cron": cronStr})
+			ResponseCommon(w, "[BCS] incorrect cron spec, please check and try again", "ok", 1, http.StatusOK, 0)
+			Info("[BCS] incorrect cron spec, please check and try again", logrus.Fields{"UID": uid, "Cron": cronStr})
 			return
 		}
 		biu.Cron = cronStr
 		biu.InfoUpdate()
-		Info("cron save completed by web", logrus.Fields{"UID": uid, "Cron": cronStr})
+		Info("[BCS] Cron save completed by web", logrus.Fields{"UID": uid, "Cron": cronStr})
 	}
 	reset()
 	ResponseCommon(w, "try succeed", "ok", 1, http.StatusOK, 0)
 }
 
 func HandleVersion(w http.ResponseWriter, r *http.Request) {
-	ResponseCommon(w, releaseVersion, "ok", 1, http.StatusOK, 0)
+	ResponseCommon(w, releaseVersion+" "+releaseTag, "ok", 1, http.StatusOK, 0)
 }
 
 func HandleUsers(w http.ResponseWriter, r *http.Request) {
@@ -137,15 +138,16 @@ func HandleUserAdd(w http.ResponseWriter, r *http.Request) {
 func HandleUserDel(w http.ResponseWriter, r *http.Request) {
 	_ = r.ParseForm()
 	uid := r.Form.Get("uid")
-	Info("try to delete user", logrus.Fields{"UID": uid})
+	Info("[BCS] Try to delete user", logrus.Fields{"UID": uid})
 	_ = DelUser(uid)
 	reset()
 	ResponseCommon(w, "try succeed", "ok", 1, http.StatusOK, 0)
 }
 
 func reset() {
+	Warn("[BSC] Release task resource")
 	taskMap.Range(func(key, value interface{}) bool {
-		Info("try to stop cron", logrus.Fields{"TaskID": key.(string)})
+		Info("[BSC] Try to stop cron", logrus.Fields{"TaskID": key.(string)})
 		value.(*cron.Cron).Stop()
 		taskMap.Delete(key)
 		return true

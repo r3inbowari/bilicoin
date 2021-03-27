@@ -3,11 +3,11 @@ package bilicoin
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/robfig/cron"
 	"github.com/sirupsen/logrus"
 	"math/rand"
 	"net/http"
+	"os"
 	"regexp"
 	"sync"
 	"time"
@@ -83,7 +83,8 @@ type CoinLog struct {
 	Reason string `json:"reason"` // 原因
 }
 
-var releaseVersion = "v1.0.3 build on 12 12 2020 89473e7..c5542bc master" // release tag
+var releaseVersion = "v1.0.4" // release tag
+var releaseTag = "89473e7..c5542bc @master"
 
 // 创建用户
 func CreateUser() (*BiliUser, error) {
@@ -242,14 +243,14 @@ func (biu *BiliUser) InfoUpdate() {
 		if biu.DedeUserID == conf.BiU[k].DedeUserID {
 			conf.BiU[k] = *biu
 			if err := conf.SetConfig(); err != nil {
-				Warn("error json setting")
+				Warn("[FILE] error json setting")
 			}
 			return
 		}
 	}
 	conf.BiU = append(conf.BiU, *biu)
 	if err := conf.SetConfig(); err != nil {
-		Warn("error json setting")
+		Warn("[FILE] error json setting")
 	}
 }
 
@@ -297,7 +298,7 @@ func (biu *BiliUser) GetBiliCoinLog() {
 			}
 		}
 	}
-	Info("coin log", logrus.Fields{"dropCount": biu.DropCoinCount, "UID": biu.DedeUserID})
+	Info("[USER] Drop history", logrus.Fields{"dropCount": biu.DropCoinCount, "UID": biu.DedeUserID})
 }
 
 // bilibili标准头部
@@ -333,7 +334,7 @@ func (biu *BiliUser) NormalAuthHeader(reqPoint *http.Request) {
 func (biu *BiliUser) DropCoin(bv string) {
 	aid := BVCovertDec(bv)
 	if biu.DropCoinCount > 4 {
-		Info("number of coins tossed today >= 5", logrus.Fields{"BVID": bv, "AVID": aid, "UID": biu.DedeUserID, "dropCount": biu.DropCoinCount})
+		Warn("number of coins tossed today >= 5", logrus.Fields{"BVID": bv, "AVID": aid, "UID": biu.DedeUserID, "dropCount": biu.DropCoinCount})
 		biu.SendMessage2WeChat(biu.DedeUserID + "打赏上限")
 		return
 	}
@@ -350,10 +351,10 @@ func (biu *BiliUser) DropCoin(bv string) {
 		_ = json.NewDecoder(res.Body).Decode(&msg)
 		if msg.Message == "0" {
 			biu.DropCoinCount++
-			Info("Drop coin succeed", logrus.Fields{"BVID": bv, "AVID": aid, "UID": biu.DedeUserID, "dropCount": biu.DropCoinCount})
+			Info("[TASK] Drop succeed", logrus.Fields{"BVID": bv, "AVID": aid, "UID": biu.DedeUserID, "dropCount": biu.DropCoinCount})
 			biu.SendMessage2WeChat(biu.DedeUserID + "打赏" + bv + "成功")
 		} else if msg.Message == "超过投币上限啦~" {
-			Info("Drop coin limited", logrus.Fields{"BVID": bv, "AVID": aid, "UID": biu.DedeUserID, "dropCount": biu.DropCoinCount})
+			Info("[TASK] Drop limited", logrus.Fields{"BVID": bv, "AVID": aid, "UID": biu.DedeUserID, "dropCount": biu.DropCoinCount})
 		}
 	}
 }
@@ -384,14 +385,9 @@ func (biu *BiliUser) DropTaskStart() {
 	c := cron.New()
 	uuid := CreateUUID()
 	taskMap.Store(uuid, c)
-	Info("cron add task", logrus.Fields{"UID": biu.DedeUserID, "Cron": biu.Cron, "TaskID": uuid})
+	Info("[CRON] Add task", logrus.Fields{"UID": biu.DedeUserID, "Cron": biu.Cron, "TaskID": uuid})
 	_ = c.AddFunc(biu.Cron, func() {
 		biu.GetBiliCoinLog()
-		Info("get coin log", logrus.Fields{"UID": biu.DedeUserID, "dropCount": biu.DropCoinCount})
-		if biu.DropCoinCount > 4 {
-			Info("cron task not need", logrus.Fields{"UID": biu.DedeUserID})
-			return
-		}
 		for true {
 			if biu.DropCoinCount > 4 {
 				biu.InfoUpdate()
@@ -400,17 +396,24 @@ func (biu *BiliUser) DropTaskStart() {
 			biu.RandDrop()
 			time.Sleep(Random(60))
 		}
-		Info("cron finish", logrus.Fields{"UID": biu.DedeUserID})
+		Info("[CRON] Task Completed", logrus.Fields{"UID": biu.DedeUserID})
 	})
 	c.Start()
-
 }
 
 // 注册所有投币任务
 func CronTaskLoad() {
+	// panic: if not biu in config file
+	// exit code 1001
 	bius := GetConfig().BiU
 	if len(bius) == 0 {
-		Info("not found users")
+		Info("[CRON] EXIT 1001")
+		Warn("[CRON] biu not found: please make sure that at least one user cookies exists in bili.json file")
+		Warn("[CRON] tip: use '-n' option to create a new user cookies by bilibili-mobile-client QR Login")
+		os.Exit(1001)
+	}
+	if len(bius) == 0 {
+		Info("[USER] Not found users")
 		return
 	}
 	for k, _ := range bius {
@@ -461,7 +464,6 @@ func GetAllUID() []string {
 
 // bilicoin初始化
 func InitBili() {
-	fmt.Println("bilicoin " + releaseVersion)
 	InitConfig()
-	InitLogger()
+	// InitLogger()
 }

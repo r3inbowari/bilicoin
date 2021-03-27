@@ -27,28 +27,19 @@ func showHelp() {
 	const v = `Usage: bilicoin [OPTIONS] [TEXT]
 
 Options:
-  -h, --help
-    Show this help message
-  -s, --start
-    Start bilicoin service
-  -d, --delete
-    Try to delete provided user information
-    eg: bilicoin -d 10023442
-  -n, --new
-    Create user info by QRCode
-  -l, --list
-    Show all users
-  -f, --ft
-    Try to set and open ftqq service for a provided user
-    eg: bilicoin -f 10023442 SDF8S12J123AP2139CAI1
-  -c, --cron
-    Try to update cron spec for a provided user
-    eg: bilicoin -f 10023442 30 16 1 * * ?
-  -a, --api
-    Run api server
+[-h] Show this help message
+[-s] Start bilicoin service
+[-d] Try to delete provided user information
+     eg: bilicoin -d 10023442
+[-n] Create user info by QRCode
+[-l] Show all users
+[-f] Try to set and open ftqq service for a provided user
+     eg: bilicoin -f 10023442 SDF8S12J123AP2139CAI1
+[-c] Try to update cron spec for a provided user
+     eg: bilicoin -f 10023442 30 16 1 * * ?
+[-a] Run api server
 `
-	_, _ = os.Stderr.Write([]byte(v))
-	println()
+	fmt.Printf("\x1b[%dm"+v+" \x1b[0m", 34)
 }
 
 func main() {
@@ -171,12 +162,15 @@ func release() {
 			}
 		}
 	} else if opts.Start {
-		// 运行
+		// 以普通模式运行
+		bilicoin.AppInfo("simple")
 		bilicoin.CronTaskLoad()
 		select {}
 	} else if opts.API {
-		// 运行
-		bilicoin.RunBiliCoinAPI()
+		// 以服务模式运行
+		bilicoin.AppInfo("api")
+		bilicoin.BCApplication()
+
 	} else {
 		ret = 10
 		showHelp()

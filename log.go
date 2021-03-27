@@ -5,7 +5,9 @@ import (
 	"github.com/sirupsen/logrus"
 	"os"
 	"runtime"
+	"strconv"
 	"strings"
+	"time"
 )
 
 var log = logrus.New()
@@ -18,6 +20,105 @@ var LogLevel = map[string]logrus.Level{
 	"INFO":  logrus.InfoLevel,
 	"DEBUG": logrus.DebugLevel,
 	"TRACE": logrus.TraceLevel,
+}
+
+type Ext struct {
+}
+
+func fieldParse(obj interface{}) string {
+	var ret string
+	switch v := obj.(type) {
+	case string:
+		ret = v
+	case float64:
+		ret = strconv.FormatFloat(v, 'E', -1, 64)
+	case int:
+		ret = strconv.Itoa(v)
+	case nil:
+		ret = "null"
+	default:
+		ret = "Unsupported"
+	}
+	return ret
+}
+
+func newEntry(msg string, level logrus.Level) Entry {
+	t := time.Now().Format("2006-01-02 15:04:05")
+	var str string
+	if level == logrus.InfoLevel {
+		str = "[INFO] " + t + " " + msg
+	} else if level == logrus.WarnLevel {
+		str = "[WARN] " + t + " " + msg
+	} else if level == logrus.FatalLevel {
+		str = "[FATAL] " + t + " " + msg
+	}
+	return Entry{msg: str, level: level}
+}
+
+func (en *Entry) withFields(ext logrus.Fields) {
+	en.msg += " | "
+	for k, v := range ext {
+		en.msg += k + " " + fieldParse(v) + " | "
+	}
+}
+
+type Entry struct {
+	msg   string
+	level logrus.Level
+}
+
+func (en *Entry) Print() {
+	switch en.level {
+	case logrus.InfoLevel:
+		fmt.Printf("\x1b[%dm"+en.msg+" \x1b[0m\n", 32)
+	case logrus.WarnLevel:
+		fmt.Printf("\x1b[%dm"+en.msg+" \x1b[0m\n", 33)
+	case logrus.FatalLevel:
+		fmt.Printf("\x1b[%dm"+en.msg+" \x1b[0m\n", 31)
+	}
+}
+
+func Info(msg string, ext ...logrus.Fields) {
+	en := newEntry(msg, logrus.InfoLevel)
+	if len(ext) > 0 {
+		en.withFields(ext[0])
+	}
+	en.Print()
+}
+
+func Warn(msg string, ext ...logrus.Fields) {
+	en := newEntry(msg, logrus.WarnLevel)
+	if len(ext) > 0 {
+		en.withFields(ext[0])
+	}
+	en.Print()
+}
+
+func Fatal(msg string, ext ...logrus.Fields) {
+	en := newEntry(msg, logrus.FatalLevel)
+	if len(ext) > 0 {
+		en.withFields(ext[0])
+	}
+	en.Print()
+}
+
+func Blue(msg string) {
+	fmt.Printf("\x1b[%dm"+msg+" \x1b[0m\n", 34)
+}
+
+func AppInfo(mode string) {
+	Blue("  ________  ___  ___       ___  ________  ________  ___  ________")
+	Blue(" |\\   __  \\|\\  \\|\\  \\     |\\  \\|\\   ____\\|\\   __  \\|\\  \\|\\   ___  \\         BILICOIN #UNOFFICIAL " + releaseVersion)
+	Blue(" \\ \\  \\|\\ /\\ \\  \\ \\  \\    \\ \\  \\ \\  \\___|\\ \\  \\|\\  \\ \\  \\ \\  \\\\ \\  \\        -... .. .-.. .. -.-. --- .. -.")
+	Blue("  \\ \\   __  \\ \\  \\ \\  \\    \\ \\  \\ \\  \\    \\ \\  \\\\\\  \\ \\  \\ \\  \\\\ \\  \\       Running in " + mode + " mode")
+	if mode == "api" {
+		Blue("   \\ \\  \\|\\  \\ \\  \\ \\  \\____\\ \\  \\ \\  \\____\\ \\  \\\\\\  \\ \\  \\ \\  \\\\ \\  \\      Port: " + GetConfig().APIAddr[1:])
+	} else {
+		Blue("   \\ \\  \\|\\  \\ \\  \\ \\  \\____\\ \\  \\ \\  \\____\\ \\  \\\\\\  \\ \\  \\ \\  \\\\ \\  \\      Port: UNSUPPORTED")
+	}
+	Blue("    \\ \\_______\\ \\__\\ \\_______\\ \\__\\ \\_______\\ \\_______\\ \\__\\ \\__\\\\ \\__\\     PID: " + strconv.Itoa(os.Getpid()))
+	Blue("     \\|_______|\\|__|\\|_______|\\|__|\\|_______|\\|_______|\\|__|\\|__| \\|__|     built on " + releaseTag)
+	Blue("")
 }
 
 func InitLogger() {
@@ -34,21 +135,21 @@ func InitLogger() {
 	log.Hooks.Add(NewContextHook())
 }
 
-func Info(msg string, fields ...logrus.Fields) {
-	if len(fields) > 0 {
-		log.WithFields(fields[0]).Info(msg)
-	} else {
-		log.Info(msg)
-	}
-}
-
-func Warn(msg string, fields ...logrus.Fields) {
-	if len(fields) > 0 {
-		log.WithFields(fields[0]).Warn(msg)
-	} else {
-		log.Warn(msg)
-	}
-}
+//func Info(msg string, fields ...logrus.Fields) {
+//	if len(fields) > 0 {
+//		log.WithFields(fields[0]).Info(msg)
+//	} else {
+//		log.Info(msg)
+//	}
+//}
+//
+//func Warn(msg string, fields ...logrus.Fields) {
+//	if len(fields) > 0 {
+//		log.WithFields(fields[0]).Warn(msg)
+//	} else {
+//		log.Warn(msg)
+//	}
+//}
 
 func Error(msg string, fields ...logrus.Fields) {
 	if len(fields) > 0 {
@@ -58,13 +159,13 @@ func Error(msg string, fields ...logrus.Fields) {
 	}
 }
 
-func Fatal(msg string, fields ...logrus.Fields) {
-	if len(fields) > 0 {
-		log.WithFields(fields[0]).Fatal(msg)
-	} else {
-		log.Fatal(msg)
-	}
-}
+//func Fatal(msg string, fields ...logrus.Fields) {
+//	if len(fields) > 0 {
+//		log.WithFields(fields[0]).Fatal(msg)
+//	} else {
+//		log.Fatal(msg)
+//	}
+//}
 
 func Panic(msg string, fields ...logrus.Fields) {
 	if len(fields) > 0 {
