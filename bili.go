@@ -84,7 +84,13 @@ type CoinLog struct {
 }
 
 var releaseVersion = "v1.0.4" // release tag
-var releaseTag = "89473e7..c5542bc @master"
+var releaseTag = "b4ac8f4..6599638 @master"
+var mode = ""
+
+const (
+	Simple = "simple"
+	Api    = "api"
+)
 
 // 创建用户
 func CreateUser() (*BiliUser, error) {
@@ -406,7 +412,7 @@ func CronTaskLoad() {
 	// panic: if not biu in config file
 	// exit code 1001
 	bius := GetConfig().BiU
-	if len(bius) == 0 {
+	if len(bius) == 0 && mode == Simple {
 		Info("[CRON] EXIT 1001")
 		Warn("[CRON] biu not found: please make sure that at least one user cookies exists in bili.json file")
 		Warn("[CRON] tip: use '-n' option to create a new user cookies by bilibili-mobile-client QR Login")

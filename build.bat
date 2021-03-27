@@ -3,7 +3,7 @@ echo Go build running
 
 set packageName="cmd"
 set appName="bilicoin"
-set buildVersion="v1.0.3"
+set buildVersion="v1.0.4"
 
 cd %packageName%
 

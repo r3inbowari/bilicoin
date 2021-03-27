@@ -163,12 +163,12 @@ func release() {
 		}
 	} else if opts.Start {
 		// 以普通模式运行
-		bilicoin.AppInfo("simple")
+		bilicoin.AppInfo(bilicoin.Simple)
 		bilicoin.CronTaskLoad()
 		select {}
 	} else if opts.API {
 		// 以服务模式运行
-		bilicoin.AppInfo("api")
+		bilicoin.AppInfo(bilicoin.Api)
 		bilicoin.BCApplication()
 
 	} else {

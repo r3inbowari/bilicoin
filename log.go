@@ -106,7 +106,8 @@ func Blue(msg string) {
 	fmt.Printf("\x1b[%dm"+msg+" \x1b[0m\n", 34)
 }
 
-func AppInfo(mode string) {
+func AppInfo(mod string) {
+	mode = mod
 	Blue("  ________  ___  ___       ___  ________  ________  ___  ________")
 	Blue(" |\\   __  \\|\\  \\|\\  \\     |\\  \\|\\   ____\\|\\   __  \\|\\  \\|\\   ___  \\         BILICOIN #UNOFFICIAL " + releaseVersion)
 	Blue(" \\ \\  \\|\\ /\\ \\  \\ \\  \\    \\ \\  \\ \\  \\___|\\ \\  \\|\\  \\ \\  \\ \\  \\\\ \\  \\        -... .. .-.. .. -.-. --- .. -.")
