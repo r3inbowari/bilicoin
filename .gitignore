@@ -4,6 +4,7 @@ cmd/cmd
 cmd/example
 cmd/bilicoin_linux_amd64
 cmd/bilicoin_linux_arm64
+cmd/bilicoin_linux_mipsle
 build/*
 build_upx/*
 bili.json

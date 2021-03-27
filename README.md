@@ -15,7 +15,7 @@
 5. 支持 `QRCode` 登录，无需手动粘贴 `Cookie`  
 6. 支持多用户批量处理  
 7. 支持通过 `API` 进行控制  
-8. [Demo 查看](http://r3in.top:9090/version "Demo")  
+8. [Demo 查看](http://r3in.top:9090/version "Demo") [QR Demo](http://r3in.top:3000/bilicoin/)
 9. 有空就更新  
 
 ## 获取工具  

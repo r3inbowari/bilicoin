@@ -1,0 +1,117 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ko" lang="ko">
+<head>
+    <title>qrcode example</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"/>
+    <script type="text/javascript" src="jquery.min.js"></script>
+    <script type="text/javascript" src="qrcode.js"></script>
+</head>
+<body>
+<div>
+    <input id="host" type="text" value="http://r3in.top:9090" style="width:25%"/>
+    <span>左侧框填写 bilicoin host 地址 </span>
+</div>
+<input id="text" type="text" value="点击右边按钮以获取登录二维码 此处显示oauth回调地址" style="width:25%"/>
+<button id="btn">获取二维码</button>
+<button id="getu">已登录账号</button>
+<button id="sto">清除所有</button>
+<h1 style="color: red">警告, 为了你的账号安全, 在默认demo的host下, 只可扫码, 请不要登陆!!!</h1>
+<h1 style="color: red">警告, 为了你的账号安全, 在默认demo的host下, 只可扫码, 请不要登陆!!!</h1>
+<h1 style="color: red">警告, 为了你的账号安全, 在默认demo的host下, 只可扫码, 请不要登陆!!!</h1>
+<div style=" width: 300px; height: 150px; border:1px solid red">
+    <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+        <g id="qrcode"/>
+    </svg>
+</div>
+<h1 id="tri" style="color: red"></h1>
+
+<div id="zhanghao">
+    <h2>已登录账号</h2>
+</div>
+
+<script type="text/javascript">
+
+    var qrcode = new QRCode(document.getElementById("qrcode"), {
+        width: 100,
+        height: 100,
+        useSVG: true
+    });
+
+    function makeCode() {
+        var elText = document.getElementById("text");
+
+        if (!elText.value) {
+            alert("Input a text");
+            elText.focus();
+            return;
+        }
+
+        qrcode.makeCode(elText.value);
+    }
+
+    // makeCode();
+
+    $("#text").on("blur", function () {
+        makeCode();
+    }).on("keydown", function (e) {
+        if (e.keyCode == 13) {
+            makeCode();
+        }
+    });
+
+    let base = $("#host").val()
+    let cl = 0
+
+    $("#btn").bind("click", function () {
+        $("#tri").text("")
+        clearInterval(cl)
+        base = $("#host").val()
+        $.post(base + "/user", function (data) {
+            data = $.parseJSON(data);
+            let login = "https://passport.bilibili.com/qrcode/h5/login?oauthKey=" + data.data
+            $("#text").val(login)
+            makeCode()
+
+            let root = base + "/user?oauth=" + data.data
+            cl = setInterval(() => {
+                $.post(root, function (dat) {
+                    dat = $.parseJSON(dat);
+                    if (dat.data) {
+                        clearInterval(cl)
+                        $("#tri").text("成功测试登陆,请及时修改密码!!!")
+                    }
+                })
+            }, 2000)
+        });
+    })
+
+    $("#sto").bind("click", function () {
+        clearInterval(cl)
+        qrcode.clear()
+        $('#zhanghao').empty()
+        $('#zhanghao').append("<h2>已登录账号</h2>")
+    })
+
+
+    $("#getu").bind("click", function () {
+        base = $("#host").val()
+        $('#zhanghao').empty()
+        $('#zhanghao').append("<h2>已登录账号</h2>")
+
+        $.post(base + "/users", function (data) {
+            data = $.parseJSON(data);
+            if (data.total === 0) {
+                $('#zhanghao').append("<div>空</div>")
+                return
+            }
+            data.data.forEach(ele => {
+                $('#zhanghao').append("<div>" + ele.uid + "</div>")
+            })
+        })
+    })
+
+</script>
+</body>
+</html>
