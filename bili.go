@@ -1,14 +1,19 @@
 package bilicoin
 
 import (
+	"bytes"
+	"compress/gzip"
+	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"github.com/robfig/cron"
 	"github.com/sirupsen/logrus"
+	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"os"
 	"regexp"
+	"strings"
 	"sync"
 	"time"
 )
@@ -272,11 +277,31 @@ func (biu *BiliUser) BiliScanAwait() {
 	c.Start()
 }
 
+func ParseGzip(data []byte) ([]byte, error) {
+	b := new(bytes.Buffer)
+	binary.Write(b, binary.LittleEndian, data)
+	r, err := gzip.NewReader(b)
+	if err != nil {
+		Info("[ParseGzip] NewReader error: %v, maybe data is ungzip")
+		return nil, err
+	} else {
+		defer r.Close()
+		undatas, err := ioutil.ReadAll(r)
+		if err != nil {
+			Warn("[ParseGzip]  ioutil.ReadAll error: %v")
+			return nil, err
+		}
+		return undatas, nil
+	}
+}
+
 // 硬币日志获取
 func (biu *BiliUser) GetBiliCoinLog() {
 	url := "https://api.bilibili.com/x/member/web/coin/log?jsonp=jsonp"
 	res, err := GET(url, func(reqPoint *http.Request) {
 		biu.NormalAuthHeader(reqPoint)
+
+		// reqPoint.Header.Add("accept-encoding", "gzip, deflate, br")
 
 		reqPoint.Header.Add("origin", "https://account.bilibili.com")
 		reqPoint.Header.Add("referer", "https://account.bilibili.com/account/coin")
@@ -284,19 +309,20 @@ func (biu *BiliUser) GetBiliCoinLog() {
 
 	if res != nil && err == nil {
 		var msg BiliInfo
+
 		_ = json.NewDecoder(res.Body).Decode(&msg)
 
-		bl, _ := json.Marshal(msg)
+		// block already dropped
+		bl, _ := json.Marshal(&msg)
 		reg := regexp.MustCompile("BV[a-zA-Z0-9_]+")
 		g := reg.FindAllString(string(bl), -1)
 		biu.BlockBVList = g
 		biu.InfoUpdate()
 		biu.DropCoinCount = 0 // init and recount
+
 		for k, _ := range msg.Data.List {
 			if isToday(msg.Data.List[k].Time) {
-				reg := regexp.MustCompile("BV[a-zA-Z0-9_]+")
-				g := reg.FindAllString(msg.Data.List[k].Reason, -1)
-				if len(g) > 0 {
+				if strings.HasSuffix(msg.Data.List[k].Reason, "打赏") {
 					biu.DropCoinCount -= msg.Data.List[k].Delta
 				}
 			} else {
@@ -330,7 +356,7 @@ func (biu *BiliUser) NormalAuthHeader(reqPoint *http.Request) {
 	reqPoint.AddCookie(cookie8)
 
 	reqPoint.Header.Add("accept", "application/json, text/plain, */*")
-	reqPoint.Header.Add("accept-encoding", "deflate, br")
+	// reqPoint.Header.Add("accept-encoding", "deflate, br")
 	reqPoint.Header.Add("sec-fetch-dest", "empty")
 	reqPoint.Header.Add("sec-fetch-mode", "cors")
 	reqPoint.Header.Add("sec-fetch-site", "same-origin")
@@ -338,6 +364,7 @@ func (biu *BiliUser) NormalAuthHeader(reqPoint *http.Request) {
 
 // 打赏逻辑
 func (biu *BiliUser) DropCoin(bv string) {
+	// TODO fix: panic if error-bv inputted
 	aid := BVCovertDec(bv)
 	if biu.DropCoinCount > 4 {
 		Warn("number of coins tossed today >= 5", logrus.Fields{"BVID": bv, "AVID": aid, "UID": biu.DedeUserID, "dropCount": biu.DropCoinCount})
@@ -393,6 +420,7 @@ func (biu *BiliUser) DropTaskStart() {
 	taskMap.Store(uuid, c)
 	Info("[CRON] Add task", logrus.Fields{"UID": biu.DedeUserID, "Cron": biu.Cron, "TaskID": uuid})
 	_ = c.AddFunc(biu.Cron, func() {
+		// TODO fix: loop drop may be happen...
 		biu.GetBiliCoinLog()
 		for true {
 			if biu.DropCoinCount > 4 {

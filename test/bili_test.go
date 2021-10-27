@@ -27,6 +27,18 @@ func TestGetLog(t *testing.T) {
 	}
 }
 
+// 投币测试
+func TestDrop(t *testing.T) {
+	if len(bilicoin.GetConfig().BiU) > 0 {
+		//bilicoin.GetConfig().BiU[0].GetBiliCoinLog()
+		//println("size -> ", bilicoin.GetConfig().BiU[0].DropCoinCount)
+		bilicoin.GetConfig().BiU[0].DropCoin("BV1sQ4y1X7WK")
+	} else {
+		println("please add a user to test")
+	}
+}
+
+
 // 获取BVs
 func TestGetBVs(t *testing.T) {
 	res, _ := bilicoin.GET("https://api.bilibili.com/x/web-interface/ranking/region?rid=119&day=3&original=0", nil)
