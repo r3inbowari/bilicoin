@@ -1,14 +1,10 @@
 package bilicoin
 
 import (
-	"bytes"
-	"compress/gzip"
-	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"github.com/robfig/cron"
 	"github.com/sirupsen/logrus"
-	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"os"
@@ -66,7 +62,7 @@ type LevelInfo struct {
 	NextExp      int `json:"next_exp"`      // 下一等级
 }
 
-// bilibili 标准响应
+// BiliInfo bilibili 标准响应
 type BiliInfo struct {
 	Status    string   `json:"status"`  // 响应状态
 	Data      BiliData `json:"data"`    // 数据
@@ -88,16 +84,17 @@ type CoinLog struct {
 	Reason string `json:"reason"` // 原因
 }
 
-var releaseVersion = "v1.0.4" // release tag
+var releaseVersion = "v1.0.0" // release tag
 var releaseTag = "b4ac8f4..6599638 @master"
-var mode = ""
+
+var RunningMode = ""
 
 const (
 	Simple = "simple"
 	Api    = "api"
 )
 
-// 创建用户
+// CreateUser 创建用户
 func CreateUser() (*BiliUser, error) {
 	var biu BiliUser
 	var err error
@@ -113,12 +110,12 @@ func CreateUser() (*BiliUser, error) {
 	return &biu, err
 }
 
-// 打印二维码
+// QRCodePrint 打印二维码
 func (biu *BiliUser) QRCodePrint() {
 	QRCPrint(biu.OAuth.Url)
 }
 
-// 获取二维码
+// GetQRCode 获取二维码
 func (biu *BiliUser) GetQRCode() error {
 	url := "https://passport.bilibili.com/qrcode/getLoginUrl"
 	res, err := GET(url, func(reqPoint *http.Request) {
@@ -145,7 +142,7 @@ func (biu *BiliUser) GetQRCode() error {
 	return nil
 }
 
-// 获取登录信息 Cron
+// GetBiliLoginInfo 获取登录信息 Cron
 func (biu *BiliUser) GetBiliLoginInfo(cron *cron.Cron) {
 	url := "https://passport.bilibili.com/qrcode/getLoginInfo"
 
@@ -155,7 +152,7 @@ func (biu *BiliUser) GetBiliLoginInfo(cron *cron.Cron) {
 		cookie1 := &http.Cookie{Name: "_uuid", Value: biu.UUID}
 		cookie2 := &http.Cookie{Name: "buvid3", Value: biu.BuVID}
 		cookie3 := &http.Cookie{Name: "sid", Value: biu.SID}
-		cookie4 := &http.Cookie{Name: "finger", Value: GetConfig().Finger}
+		cookie4 := &http.Cookie{Name: "finger", Value: GetConfig(false).Finger}
 		cookie0 := &http.Cookie{Name: "PVID", Value: "4"}
 
 		reqPoint.AddCookie(cookie0)
@@ -169,7 +166,7 @@ func (biu *BiliUser) GetBiliLoginInfo(cron *cron.Cron) {
 		reqPoint.Header.Add("origin", "https://passport.bilibili.com")
 		reqPoint.Header.Add("referer", "https://passport.bilibili.com/login")
 		reqPoint.Header.Add("sec-fetch-dest", "empty")
-		reqPoint.Header.Add("sec-fetch-mode", "cors")
+		reqPoint.Header.Add("sec-fetch-RunningMode", "cors")
 		reqPoint.Header.Add("sec-fetch-site", "same-origin")
 
 		reqPoint.Header.Add("x-requested-with", "XMLHttpRequest")
@@ -192,12 +189,14 @@ func (biu *BiliUser) GetBiliLoginInfo(cron *cron.Cron) {
 
 			biu.InfoUpdate()
 		} else {
-			Info(result.Message)
+			if result.Message != "" {
+				Info(result.Message)
+			}
 		}
 	}
 }
 
-// 获取登录信息
+// LoginCallback 获取登录信息
 func (biu *BiliUser) LoginCallback(callback func(isLogin bool)) {
 	url := "https://passport.bilibili.com/qrcode/getLoginInfo"
 
@@ -207,7 +206,7 @@ func (biu *BiliUser) LoginCallback(callback func(isLogin bool)) {
 		cookie1 := &http.Cookie{Name: "_uuid", Value: biu.UUID}
 		cookie2 := &http.Cookie{Name: "buvid3", Value: biu.BuVID}
 		cookie3 := &http.Cookie{Name: "sid", Value: biu.SID}
-		cookie4 := &http.Cookie{Name: "finger", Value: GetConfig().Finger}
+		cookie4 := &http.Cookie{Name: "finger", Value: GetConfig(false).Finger}
 		cookie0 := &http.Cookie{Name: "PVID", Value: "4"}
 
 		reqPoint.AddCookie(cookie0)
@@ -221,7 +220,7 @@ func (biu *BiliUser) LoginCallback(callback func(isLogin bool)) {
 		reqPoint.Header.Add("origin", "https://passport.bilibili.com")
 		reqPoint.Header.Add("referer", "https://passport.bilibili.com/login")
 		reqPoint.Header.Add("sec-fetch-dest", "empty")
-		reqPoint.Header.Add("sec-fetch-mode", "cors")
+		reqPoint.Header.Add("sec-fetch-RunningMode", "cors")
 		reqPoint.Header.Add("sec-fetch-site", "same-origin")
 
 		reqPoint.Header.Add("x-requested-with", "XMLHttpRequest")
@@ -239,17 +238,17 @@ func (biu *BiliUser) LoginCallback(callback func(isLogin bool)) {
 			biu.SESSDATA = cookies[4].Value
 			biu.BiliJCT = cookies[6].Value
 			biu.Login = true
-			callback(true)
 			biu.InfoUpdate()
+			callback(true)
 		} else {
 			callback(false)
 		}
 	}
 }
 
-// 更新配置树
+// InfoUpdate 更新配置树
 func (biu *BiliUser) InfoUpdate() {
-	conf := GetConfig()
+	conf := GetConfig(false)
 	for k, _ := range conf.BiU {
 		if biu.DedeUserID == conf.BiU[k].DedeUserID {
 			conf.BiU[k] = *biu
@@ -265,7 +264,7 @@ func (biu *BiliUser) InfoUpdate() {
 	}
 }
 
-// 等待登录扫描
+// BiliScanAwait 等待登录扫描
 func (biu *BiliUser) BiliScanAwait() {
 	i := 0
 	c := cron.New()
@@ -275,28 +274,18 @@ func (biu *BiliUser) BiliScanAwait() {
 		biu.GetBiliLoginInfo(c)
 	})
 	c.Start()
-}
 
-func ParseGzip(data []byte) ([]byte, error) {
-	b := new(bytes.Buffer)
-	binary.Write(b, binary.LittleEndian, data)
-	r, err := gzip.NewReader(b)
-	if err != nil {
-		Info("[ParseGzip] NewReader error: %v, maybe data is ungzip")
-		return nil, err
-	} else {
-		defer r.Close()
-		undatas, err := ioutil.ReadAll(r)
-		if err != nil {
-			Warn("[ParseGzip]  ioutil.ReadAll error: %v")
-			return nil, err
+	for true {
+		if biu.DedeUserID != "" {
+			Info("Login process will exit after 5 seconds")
+			time.Sleep(time.Second * 5)
+			os.Exit(0)
 		}
-		return undatas, nil
 	}
 }
 
-// 硬币日志获取
-func (biu *BiliUser) GetBiliCoinLog() {
+// GetBiliCoinLog 硬币日志获取
+func (biu *BiliUser) GetBiliCoinLog() error {
 	url := "https://api.bilibili.com/x/member/web/coin/log?jsonp=jsonp"
 	res, err := GET(url, func(reqPoint *http.Request) {
 		biu.NormalAuthHeader(reqPoint)
@@ -311,6 +300,13 @@ func (biu *BiliUser) GetBiliCoinLog() {
 		var msg BiliInfo
 
 		_ = json.NewDecoder(res.Body).Decode(&msg)
+
+		// fix: 循环投币的惨剧可能发生
+		// reason: 在部分地区的分发服务器可能默认采用了gzip压缩导致乱码
+		// 判断投币历史记录是否成功获取,即ttl跳数>0必然成功
+		if msg.TTL < 1 {
+			return errors.New("the service is unreachable or an unknown error has occurred")
+		}
 
 		// block already dropped
 		bl, _ := json.Marshal(&msg)
@@ -331,14 +327,15 @@ func (biu *BiliUser) GetBiliCoinLog() {
 		}
 	}
 	Info("[USER] Drop history", logrus.Fields{"dropCount": biu.DropCoinCount, "UID": biu.DedeUserID})
+	return nil
 }
 
-// bilibili标准头部
+// NormalAuthHeader bilibili标准头部
 func (biu *BiliUser) NormalAuthHeader(reqPoint *http.Request) {
 	cookie3 := &http.Cookie{Name: "sid", Value: biu.SID}
 	cookie1 := &http.Cookie{Name: "_uuid", Value: biu.UUID}
 	cookie2 := &http.Cookie{Name: "buvid3", Value: biu.BuVID}
-	cookie4 := &http.Cookie{Name: "finger", Value: GetConfig().Finger}
+	cookie4 := &http.Cookie{Name: "finger", Value: GetConfig(false).Finger}
 	cookie0 := &http.Cookie{Name: "PVID", Value: "6"}
 	cookie8 := &http.Cookie{Name: "SESSDATA", Value: biu.SESSDATA}
 	cookie5 := &http.Cookie{Name: "DedeUserID", Value: biu.DedeUserID}
@@ -358,11 +355,11 @@ func (biu *BiliUser) NormalAuthHeader(reqPoint *http.Request) {
 	reqPoint.Header.Add("accept", "application/json, text/plain, */*")
 	// reqPoint.Header.Add("accept-encoding", "deflate, br")
 	reqPoint.Header.Add("sec-fetch-dest", "empty")
-	reqPoint.Header.Add("sec-fetch-mode", "cors")
+	reqPoint.Header.Add("sec-fetch-RunningMode", "cors")
 	reqPoint.Header.Add("sec-fetch-site", "same-origin")
 }
 
-// 打赏逻辑
+// DropCoin 打赏逻辑
 func (biu *BiliUser) DropCoin(bv string) {
 	// TODO fix: panic if error-bv inputted
 	aid := BVCovertDec(bv)
@@ -392,7 +389,7 @@ func (biu *BiliUser) DropCoin(bv string) {
 	}
 }
 
-// 方糖
+// SendMessage2WeChat 方糖
 func (biu *BiliUser) SendMessage2WeChat(title string, content ...string) {
 	ft := biu.FT
 	if biu.FTSwitch && ft != "" {
@@ -413,7 +410,7 @@ func (biu *BiliUser) RandDrop() {
 
 var taskMap sync.Map
 
-// 投币任务
+// DropTaskStart 投币任务
 func (biu *BiliUser) DropTaskStart() {
 	c := cron.New()
 	uuid := CreateUUID()
@@ -435,15 +432,15 @@ func (biu *BiliUser) DropTaskStart() {
 	c.Start()
 }
 
-// 注册所有投币任务
+// CronTaskLoad 注册所有投币任务
 func CronTaskLoad() {
 	// panic: if not biu in config file
 	// exit code 1001
-	bius := GetConfig().BiU
-	if len(bius) == 0 && mode == Simple {
-		Info("[CRON] EXIT 1001")
+	bius := GetConfig(true).BiU
+	if len(bius) == 0 && RunningMode == Simple {
 		Warn("[CRON] biu not found: please make sure that at least one user cookies exists in bili.json file")
 		Warn("[CRON] tip: use '-n' option to create a new user cookies by bilibili-mobile-client QR Login")
+		Info("[CRON] EXIT 1001")
 		os.Exit(1001)
 	}
 	if len(bius) == 0 {
@@ -451,17 +448,23 @@ func CronTaskLoad() {
 		return
 	}
 	for k, _ := range bius {
-		bius[k].GetBiliCoinLog()
+		err := bius[k].GetBiliCoinLog()
+		if err != nil {
+			// 当前账号获取日志失败，跳过此账号
+			// 过期、未知错误、服务不可达、解析错误
+			Warn("user load error, can not get coin log", logrus.Fields{"err": err.Error(), "id": bius[k].DedeUserID})
+			continue
+		}
 		bius[k].DropTaskStart()
 	}
 }
 
-// 获取所有UID实体
+// LoadUser 获取所有UID实体
 func LoadUser() []BiliUser {
-	return GetConfig().BiU
+	return GetConfig(false).BiU
 }
 
-// 尝试通过UID获取一个UID实体
+// GetUser 尝试通过UID获取一个UID实体
 func GetUser(uid string) (*BiliUser, error) {
 	users := LoadUser()
 	for k, _ := range users {
@@ -473,7 +476,7 @@ func GetUser(uid string) (*BiliUser, error) {
 	return nil, errors.New("not found user")
 }
 
-// 尝试删除Config中一个UID配置实体
+// DelUser 尝试删除Config中一个UID配置实体
 func DelUser(uid string) error {
 	users := LoadUser()
 	for k, _ := range users {
@@ -486,7 +489,7 @@ func DelUser(uid string) error {
 	return errors.New("not found user")
 }
 
-// 获取Config中所有已知UID的String
+// GetAllUID 获取Config中所有已知UID的String
 func GetAllUID() []string {
 	users := LoadUser()
 	var retVal []string
@@ -496,8 +499,11 @@ func GetAllUID() []string {
 	return retVal
 }
 
-// bilicoin初始化
-func InitBili() {
+// InitBili bilicoin初始化
+func InitBili(version, hash string) {
+	releaseVersion = version
+	releaseTag = hash
+
 	InitConfig()
 	// InitLogger()
 }

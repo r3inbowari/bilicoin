@@ -106,28 +106,28 @@ func Blue(msg string) {
 	fmt.Printf("\x1b[%dm"+msg+" \x1b[0m\n", 34)
 }
 
-func AppInfo(mod string) {
-	mode = mod
+func AppInfo(gitHash, buildTime, goVersion string, version string) {
+	// RunningMode = mod
 	Blue("  ________  ___  ___       ___  ________  ________  ___  ________")
-	Blue(" |\\   __  \\|\\  \\|\\  \\     |\\  \\|\\   ____\\|\\   __  \\|\\  \\|\\   ___  \\         BILICOIN #UNOFFICIAL " + releaseVersion)
-	Blue(" \\ \\  \\|\\ /\\ \\  \\ \\  \\    \\ \\  \\ \\  \\___|\\ \\  \\|\\  \\ \\  \\ \\  \\\\ \\  \\        -... .. .-.. .. -.-. --- .. -.")
-	Blue("  \\ \\   __  \\ \\  \\ \\  \\    \\ \\  \\ \\  \\    \\ \\  \\\\\\  \\ \\  \\ \\  \\\\ \\  \\       Running in " + mode + " mode")
-	if mode == "api" {
-		Blue("   \\ \\  \\|\\  \\ \\  \\ \\  \\____\\ \\  \\ \\  \\____\\ \\  \\\\\\  \\ \\  \\ \\  \\\\ \\  \\      Port: " + GetConfig().APIAddr[1:])
+	Blue(" |\\   __  \\|\\  \\|\\  \\     |\\  \\|\\   ____\\|\\   __  \\|\\  \\|\\   ___  \\         BILICOIN #UNOFFICIAL# " + gitHash[:7] + "..." + gitHash[33:])
+	Blue(" \\ \\  \\|\\ /\\ \\  \\ \\  \\    \\ \\  \\ \\  \\___|\\ \\  \\|\\  \\ \\  \\ \\  \\\\ \\  \\        -... .. .-.. .. -.-. --- .. -. " + version)
+	Blue("  \\ \\   __  \\ \\  \\ \\  \\    \\ \\  \\ \\  \\    \\ \\  \\\\\\  \\ \\  \\ \\  \\\\ \\  \\       Running mode: " + RunningMode)
+	if RunningMode == "api" {
+		Blue("   \\ \\  \\|\\  \\ \\  \\ \\  \\____\\ \\  \\ \\  \\____\\ \\  \\\\\\  \\ \\  \\ \\  \\\\ \\  \\      Port: " + GetConfig(false).APIAddr[1:])
 	} else {
 		Blue("   \\ \\  \\|\\  \\ \\  \\ \\  \\____\\ \\  \\ \\  \\____\\ \\  \\\\\\  \\ \\  \\ \\  \\\\ \\  \\      Port: UNSUPPORTED")
 	}
 	Blue("    \\ \\_______\\ \\__\\ \\_______\\ \\__\\ \\_______\\ \\_______\\ \\__\\ \\__\\\\ \\__\\     PID: " + strconv.Itoa(os.Getpid()))
-	Blue("     \\|_______|\\|__|\\|_______|\\|__|\\|_______|\\|_______|\\|__|\\|__| \\|__|     built on " + releaseTag)
+	Blue("     \\|_______|\\|__|\\|_______|\\|__|\\|_______|\\|_______|\\|__|\\|__| \\|__|     built on " + buildTime)
 	Blue("")
 }
 
 func InitLogger() {
 	log.Out = os.Stdout
-	if GetConfig().LoggerLevel == nil {
+	if GetConfig(false).LoggerLevel == nil {
 		log.Level = logrus.DebugLevel
 	} else {
-		log.Level = LogLevel[strings.ToUpper(*GetConfig().LoggerLevel)]
+		log.Level = LogLevel[strings.ToUpper(*GetConfig(false).LoggerLevel)]
 	}
 	log.SetFormatter(&logrus.TextFormatter{
 		ForceColors:   true,
