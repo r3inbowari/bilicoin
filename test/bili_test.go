@@ -10,7 +10,7 @@ import (
 )
 
 func TestBili(t *testing.T) {
-	bilicoin.InitBili()
+	bilicoin.InitBili("v1.0.0","cb0dc838e04e841f193f383e06e9d25a534c5809")
 
 	// release()
 	bilicoin.CronTaskLoad()
@@ -19,9 +19,9 @@ func TestBili(t *testing.T) {
 
 // 获取投币日志(数量)
 func TestGetLog(t *testing.T) {
-	if len(bilicoin.GetConfig().BiU) > 0 {
-		bilicoin.GetConfig().BiU[0].GetBiliCoinLog()
-		println("size -> ", bilicoin.GetConfig().BiU[0].DropCoinCount)
+	if len(bilicoin.GetConfig(false).BiU) > 0 {
+		bilicoin.GetConfig(false).BiU[0].GetBiliCoinLog()
+		println("size -> ", bilicoin.GetConfig(false).BiU[0].DropCoinCount)
 	} else {
 		println("please add a user to test")
 	}
@@ -29,10 +29,10 @@ func TestGetLog(t *testing.T) {
 
 // 投币测试
 func TestDrop(t *testing.T) {
-	if len(bilicoin.GetConfig().BiU) > 0 {
+	if len(bilicoin.GetConfig(false).BiU) > 0 {
 		//bilicoin.GetConfig().BiU[0].GetBiliCoinLog()
 		//println("size -> ", bilicoin.GetConfig().BiU[0].DropCoinCount)
-		bilicoin.GetConfig().BiU[0].DropCoin("BV1sQ4y1X7WK")
+		bilicoin.GetConfig(false).BiU[0].DropCoin("BV1sQ4y1X7WK")
 	} else {
 		println("please add a user to test")
 	}

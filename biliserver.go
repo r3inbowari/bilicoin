@@ -6,14 +6,15 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/wuwenbao/gcors"
 	"net/http"
+	"os"
 	"sync"
 	"time"
 )
 
 func BCApplication() {
-	Info("[BCS] BILICOIN api mode running")
+	Info("[BCS] BILICOIN api RunningMode running")
 	reset()
-	Info("[BCS] Listened on " + GetConfig().APIAddr)
+	Info("[BCS] Listened on " + GetConfig(false).APIAddr)
 	r := mux.NewRouter()
 
 	r.HandleFunc("/{uid}/ft", HandleFT)
@@ -30,9 +31,14 @@ func BCApplication() {
 		gcors.WithMethods("POST, GET, PUT, DELETE, OPTIONS"),
 		gcors.WithHeaders("Authorization"),
 	)
-	log.Fatal(http.ListenAndServe(GetConfig().APIAddr, cors))
+	err := http.ListenAndServe(GetConfig(false).APIAddr, cors)
+	if err != nil {
+		Fatal("[BCS] Only one usage of each socket address is normally permitted.")
+		Info("[BCS] EXIT 1002")
+		os.Exit(1002)
+	}
 	// goroutine block here not need sleep
-	time.Sleep(time.Hour)
+	//time.Sleep(time.Hour)
 }
 
 type FilterBiliUser struct {
@@ -113,8 +119,7 @@ func HandleUserAdd(w http.ResponseWriter, r *http.Request) {
 		// 提供回调
 		user, _ := CreateUser()
 		_ = user.GetQRCode()
-		println(user.OAuth.OAuthKey)
-		println(user.OAuth.Url)
+		Info("[BCS] qrcode created", logrus.Fields{"oauth": user.OAuth.OAuthKey})
 		loginMap.Store(user.OAuth.OAuthKey, user)
 		time.AfterFunc(time.Minute*3, func() {
 			loginMap.Delete(user.OAuth.OAuthKey)
@@ -132,6 +137,7 @@ func HandleUserAdd(w http.ResponseWriter, r *http.Request) {
 			})
 			// ResponseCommon(w, oauth, "ok", 1, http.StatusOK, 0)
 		}
+		//TODO not exist key
 	}
 }
 

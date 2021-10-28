@@ -19,10 +19,10 @@ import (
 )
 
 var inlineJSCode = `function generateUuidPart(c){for(var a="",b=0;b<c;b++){a+=parseInt(16*Math.random()).toString(16).toUpperCase()}return formatNum(a,c)}function generateUuid(){var d=generateUuidPart(8),b=generateUuidPart(4),c=generateUuidPart(4),g=generateUuidPart(4),f=generateUuidPart(12),a=(new Date).getTime();return d+"-"+b+"-"+c+"-"+g+"-"+f+formatNum((a%100000).toString(),5)+"infoc"}function formatNum(c,a){var b="";if(c.length<a){for(var d=0;d<a-c.length;d++){b+="0"}}return b+c};`
-var xor = 177451812
-var add = 8728348608
+var xor int64 = 177451812
+var add int64 = 8728348608
 var table = "fZodR9XQDSUm21yCkr6zBqiveYah8bt4xsWpHnJE7jL5VG3guMTKNPAwcF"
-var s = []int{11, 10, 3, 8, 4, 6, 2, 9, 5, 7}
+var s = []int64{11, 10, 3, 8, 4, 6, 2, 9, 5, 7}
 
 // bv2av
 func BVCovertDec(bv string) string {
@@ -30,22 +30,25 @@ func BVCovertDec(bv string) string {
 	for i := 1; i < 58; i++ {
 		tr[table[i]] = i
 	}
-	r := 0
-	for i := 0; i < 6; i++ {
-		r += tr[bv[s[i]]] * int(math.Pow(58.0, float64(i)))
+	var r int64 = 0
+	var i int64 = 0
+	for ; i < 6; i++ {
+		k := int64(math.Pow(58.0, float64(i)))
+		r += int64(tr[bv[s[i]]]) * k
 	}
 	retAV := (r - add) ^ xor
-	return strconv.Itoa(retAV)
+	return strconv.FormatInt(retAV, 10)
 }
 
 // av2bv
 func BVCovertEnc(av string) string {
 	var r = []string{"B", "V", "1", "", "", "4", "", "1", "", "7", "", ""}
 	x, _ := strconv.Atoi(av)
-	x_ := (x ^ xor) + add
+	x64 := int64(x)
+	x_ := (x64 ^ xor) + add
 	for i := 0; i < 6; i++ {
-		_x := int(math.Pow(58.0, float64(i)))
-		aj := int(math.Floor(float64(x_ / _x)))
+		_x := int64(math.Pow(58.0, float64(i)))
+		aj := int64(math.Floor(float64(x_ / _x)))
 		r[s[i]] = string(table[aj%58])
 	}
 	return strings.Join(r, "")

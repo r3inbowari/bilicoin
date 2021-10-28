@@ -7,8 +7,8 @@ import (
 	"github.com/robfig/cron"
 	"github.com/sirupsen/logrus"
 	"os"
+	"runtime"
 	"strconv"
-	"time"
 )
 
 type cmdOptions struct {
@@ -42,8 +42,25 @@ Options:
 	fmt.Printf("\x1b[%dm"+v+" \x1b[0m", 34)
 }
 
+var (
+	GitHash        string
+	buildTime      string
+	goVersion      string
+	ReleaseVersion string
+)
+
+var Mode = "DEV"
+
 func main() {
-	bilicoin.InitBili()
+
+	if Mode == "DEV" {
+		buildTime = "Thu Oct 01 00:00:00 1970 +0800"
+		GitHash = "cb0dc838e04e841f193f383e06e9d25a534c5809"
+		goVersion = runtime.Version()
+		ReleaseVersion = "ver[DEV]"
+	}
+
+	bilicoin.InitBili(ReleaseVersion, GitHash)
 
 	release()
 	// example:
@@ -155,20 +172,16 @@ func release() {
 		_ = user.GetQRCode()
 		user.QRCodePrint()
 		user.BiliScanAwait()
-		for true {
-			if user.DedeUserID != "" {
-				time.Sleep(time.Second * 5)
-				os.Exit(0)
-			}
-		}
 	} else if opts.Start {
 		// 以普通模式运行
-		bilicoin.AppInfo(bilicoin.Simple)
+		bilicoin.RunningMode = bilicoin.Simple
+		bilicoin.AppInfo(GitHash, buildTime, goVersion, ReleaseVersion)
 		bilicoin.CronTaskLoad()
 		select {}
 	} else if opts.API {
 		// 以服务模式运行
-		bilicoin.AppInfo(bilicoin.Api)
+		bilicoin.RunningMode = bilicoin.Api
+		bilicoin.AppInfo(GitHash, buildTime, goVersion, ReleaseVersion)
 		bilicoin.BCApplication()
 
 	} else {

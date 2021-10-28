@@ -24,8 +24,10 @@ type LocalConfig struct {
 var config = new(LocalConfig)
 var configPath = "bili.json"
 
-func GetConfig() *LocalConfig {
-	if config.CacheTime.Before(time.Now()) {
+// GetConfig 返回配置文件
+// imm 立即返回
+func GetConfig(imm bool) *LocalConfig {
+	if config.CacheTime.Before(time.Now()) || imm {
 		if err := LoadConfig(configPath, config); err != nil {
 			Fatal("loading file failed")
 			return nil

@@ -1,5 +1,5 @@
 # bilicoin service Dockerfile
-# version 1.0.3
+# version 1.0.6
 # author r3inbowari
 FROM golang:1.14 as builder
 LABEL stage="builder"
@@ -14,13 +14,13 @@ COPY . .
 # 使用 netgo
 ENV CGO_ENABLED=0
 
-RUN go build cmd/example.go
-RUN chmod 777 example
+RUN go build cmd/main.go
+RUN chmod 777 main
 
 FROM alpine
 
 WORKDIR /app
 
-COPY --from=builder /app/example .
+COPY --from=builder /app/main .
 
-ENTRYPOINT ["./example", "-a"]
+ENTRYPOINT ["./main", "-a"]
