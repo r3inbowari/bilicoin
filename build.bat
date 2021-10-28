@@ -37,6 +37,14 @@ copy ..\build\%appName%_%GOOS%_%GOARCH%_%buildVersion%.exe ..\build_upx\
 echo Done %appName%_%GOOS%_%GOARCH%_%buildVersion%
 set upxArgs=%upxArgs% %appName%_%GOOS%_%GOARCH%_%buildVersion%.exe
 
+set GOOS=windows
+set GOARCH=arm64
+go build -ldflags "-X 'main.ReleaseVersion=%buildVersion%' -X 'main.Mode=%Mode%' -X 'main.goVersion=%goVersion%' -X 'main.GitHash=%gitHash%' -X 'main.buildTime=%buildTime%'" -o ../build/%appName%_%GOOS%_%GOARCH%_%buildVersion%.exe
+@REM go build -o ../build/%appName%_%GOOS%_%GOARCH%_%buildVersion%.exe
+copy ..\build\%appName%_%GOOS%_%GOARCH%_%buildVersion%.exe ..\build_upx\
+echo Done %appName%_%GOOS%_%GOARCH%_%buildVersion%
+set upxArgs=%upxArgs% %appName%_%GOOS%_%GOARCH%_%buildVersion%.exe
+
 set GOOS=linux
 set GOARCH=amd64
 go build -ldflags "-X 'main.ReleaseVersion=%buildVersion%' -X 'main.Mode=%Mode%' -X 'main.goVersion=%goVersion%' -X 'main.GitHash=%gitHash%' -X 'main.buildTime=%buildTime%'" -o ../build/%appName%_%GOOS%_%GOARCH%_%buildVersion%
@@ -54,6 +62,13 @@ set upxArgs=%upxArgs% %appName%_%GOOS%_%GOARCH%_%buildVersion%
 
 set GOOS=darwin
 set GOARCH=amd64
+go build -ldflags "-X 'main.ReleaseVersion=%buildVersion%' -X 'main.Mode=%Mode%' -X 'main.goVersion=%goVersion%' -X 'main.GitHash=%gitHash%' -X 'main.buildTime=%buildTime%'" -o ../build/%appName%_%GOOS%_%GOARCH%_%buildVersion%
+copy ..\build\%appName%_%GOOS%_%GOARCH%_%buildVersion% ..\build_upx\
+echo Done %appName%_%GOOS%_%GOARCH%_%buildVersion%
+set upxArgs=%upxArgs% %appName%_%GOOS%_%GOARCH%_%buildVersion%
+
+set GOOS=darwin
+set GOARCH=arm64
 go build -ldflags "-X 'main.ReleaseVersion=%buildVersion%' -X 'main.Mode=%Mode%' -X 'main.goVersion=%goVersion%' -X 'main.GitHash=%gitHash%' -X 'main.buildTime=%buildTime%'" -o ../build/%appName%_%GOOS%_%GOARCH%_%buildVersion%
 copy ..\build\%appName%_%GOOS%_%GOARCH%_%buildVersion% ..\build_upx\
 echo Done %appName%_%GOOS%_%GOARCH%_%buildVersion%
