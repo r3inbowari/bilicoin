@@ -6,10 +6,10 @@
 
 set packageName=cmd
 set appName=bilicoin
-set buildVersion=v1.0.6
+set buildVersion=v1.0.7
 set major=1
 set minor=0
-set patch=6
+set patch=7
 set Mode=REL
 
 for /f "delims=" %%i in ('go version') do (set goVersion=%%i)
