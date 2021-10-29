@@ -18,7 +18,8 @@
 6. 支持多用户批量处理
 7. 支持服务模式
 8. [Demo 查看](http://r3in.top:9090/version "Demo") [QR Demo](http://r3in.top:3000/bilicoin/)
-9. 有空就更新
+9. 支持自动更新
+10. 有空就更新
 
 ## 获取工具
 
@@ -38,7 +39,7 @@
     ```
     ./bilicoin_linux_amd64 -n
     ```
-    <img src="qrcode.png" style="height:300px" />
+    <img src="./dev/qrcode.png" style="height:300px" />
 
 2. 登录成功后使用命令行输入下面内容即可开启投币服务
     ```
