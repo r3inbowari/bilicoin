@@ -47,6 +47,9 @@ var (
 	buildTime      string
 	goVersion      string
 	ReleaseVersion string
+	Major          string
+	Minor          string
+	Patch          string
 )
 
 var Mode = "DEV"
@@ -60,7 +63,7 @@ func main() {
 		ReleaseVersion = "ver[DEV]"
 	}
 
-	bilicoin.InitBili(ReleaseVersion, GitHash)
+	bilicoin.InitBili(ReleaseVersion, GitHash, Major, Minor, Patch)
 
 	release()
 	// example:

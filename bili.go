@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -86,6 +87,14 @@ type CoinLog struct {
 
 var releaseVersion = "v1.0.0" // release tag
 var releaseTag = "b4ac8f4..6599638 @master"
+
+type Version struct {
+	Patch int64
+	Minor int64
+	Major int64
+}
+
+var version Version
 
 var RunningMode = ""
 
@@ -166,7 +175,7 @@ func (biu *BiliUser) GetBiliLoginInfo(cron *cron.Cron) {
 		reqPoint.Header.Add("origin", "https://passport.bilibili.com")
 		reqPoint.Header.Add("referer", "https://passport.bilibili.com/login")
 		reqPoint.Header.Add("sec-fetch-dest", "empty")
-		reqPoint.Header.Add("sec-fetch-RunningMode", "cors")
+		reqPoint.Header.Add("sec-fetch-mode", "cors")
 		reqPoint.Header.Add("sec-fetch-site", "same-origin")
 
 		reqPoint.Header.Add("x-requested-with", "XMLHttpRequest")
@@ -500,10 +509,12 @@ func GetAllUID() []string {
 }
 
 // InitBili bilicoin初始化
-func InitBili(version, hash string) {
-	releaseVersion = version
+func InitBili(ver, hash string, major, minor, patch string) {
+	releaseVersion = ver
 	releaseTag = hash
-
+	version.Major, _ = strconv.ParseInt(major, 10, 64)
+	version.Minor, _ = strconv.ParseInt(minor, 10, 64)
+	version.Patch, _ = strconv.ParseInt(patch, 10, 64)
 	InitConfig()
 	// InitLogger()
 }

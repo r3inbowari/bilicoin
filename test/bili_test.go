@@ -10,7 +10,7 @@ import (
 )
 
 func TestBili(t *testing.T) {
-	bilicoin.InitBili("v1.0.0","cb0dc838e04e841f193f383e06e9d25a534c5809")
+	bilicoin.InitBili("v1.0.0", "cb0dc838e04e841f193f383e06e9d25a534c5809", "1", "1", "1")
 
 	// release()
 	bilicoin.CronTaskLoad()
@@ -37,7 +37,6 @@ func TestDrop(t *testing.T) {
 		println("please add a user to test")
 	}
 }
-
 
 // 获取BVs
 func TestGetBVs(t *testing.T) {

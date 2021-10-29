@@ -1,17 +1,27 @@
 package bilicoin
 
 import (
+	"context"
 	"github.com/gorilla/mux"
 	"github.com/robfig/cron"
 	"github.com/sirupsen/logrus"
 	"github.com/wuwenbao/gcors"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"time"
 )
 
+var BiliServer *http.Server
+
 func BCApplication() {
+
+	go func() {
+		time.Sleep(time.Second)
+		CheckAndUpdateAndReload()
+	}()
+
 	Info("[BCS] BILICOIN api RunningMode running")
 	reset()
 	Info("[BCS] Listened on " + GetConfig(false).APIAddr)
@@ -31,14 +41,34 @@ func BCApplication() {
 		gcors.WithMethods("POST, GET, PUT, DELETE, OPTIONS"),
 		gcors.WithHeaders("Authorization"),
 	)
-	err := http.ListenAndServe(GetConfig(false).APIAddr, cors)
-	if err != nil {
+
+	BiliServer = &http.Server{
+		Addr:    GetConfig(false).APIAddr,
+		Handler: cors,
+	}
+	err := BiliServer.ListenAndServe()
+	//err := http.ListenAndServe(GetConfig(false).APIAddr, cors)
+	if strings.HasSuffix(err.Error(), "normally permitted.") {
 		Fatal("[BCS] Only one usage of each socket address is normally permitted.")
 		Info("[BCS] EXIT 1002")
 		os.Exit(1002)
 	}
+
 	// goroutine block here not need sleep
-	//time.Sleep(time.Hour)
+	time.Sleep(time.Second * 10)
+}
+
+func Shutdown(ctx context.Context) {
+	if BiliServer != nil {
+		Info("[BSC] releasing server now...")
+		err := BiliServer.Shutdown(ctx)
+		if err != nil {
+			Fatal("[BSC] Shutdown failed")
+			Info("[BCS] EXIT 1002")
+			os.Exit(1011)
+		}
+		Info("[BSC] release completed")
+	}
 }
 
 type FilterBiliUser struct {

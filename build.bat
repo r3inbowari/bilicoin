@@ -7,6 +7,9 @@
 set packageName=cmd
 set appName=bilicoin
 set buildVersion=v1.0.6
+set major=1
+set minor=0
+set patch=6
 set Mode=REL
 
 for /f "delims=" %%i in ('go version') do (set goVersion=%%i)
@@ -31,7 +34,7 @@ cd %packageName%
 
 set GOOS=windows
 set GOARCH=amd64
-go build -ldflags "-X 'main.ReleaseVersion=%buildVersion%' -X 'main.Mode=%Mode%' -X 'main.goVersion=%goVersion%' -X 'main.GitHash=%gitHash%' -X 'main.buildTime=%buildTime%'" -o ../build/%appName%_%GOOS%_%GOARCH%_%buildVersion%.exe
+go build -ldflags "-X 'main.Major=%major%' -X 'main.Minor=%minor%'-X 'main.Patch=%patch%' -X 'main.ReleaseVersion=%buildVersion%' -X 'main.Mode=%Mode%' -X 'main.goVersion=%goVersion%' -X 'main.GitHash=%gitHash%' -X 'main.buildTime=%buildTime%'" -o ../build/%appName%_%GOOS%_%GOARCH%_%buildVersion%.exe
 @REM go build -o ../build/%appName%_%GOOS%_%GOARCH%_%buildVersion%.exe
 copy ..\build\%appName%_%GOOS%_%GOARCH%_%buildVersion%.exe ..\build_upx\
 echo Done %appName%_%GOOS%_%GOARCH%_%buildVersion%
@@ -39,7 +42,7 @@ set upxArgs=%upxArgs% %appName%_%GOOS%_%GOARCH%_%buildVersion%.exe
 
 set GOOS=windows
 set GOARCH=arm64
-go build -ldflags "-X 'main.ReleaseVersion=%buildVersion%' -X 'main.Mode=%Mode%' -X 'main.goVersion=%goVersion%' -X 'main.GitHash=%gitHash%' -X 'main.buildTime=%buildTime%'" -o ../build/%appName%_%GOOS%_%GOARCH%_%buildVersion%.exe
+go build -ldflags "-X 'main.Major=%major%' -X 'main.Minor=%minor%'-X 'main.Patch=%patch%' -X 'main.ReleaseVersion=%buildVersion%' -X 'main.Mode=%Mode%' -X 'main.goVersion=%goVersion%' -X 'main.GitHash=%gitHash%' -X 'main.buildTime=%buildTime%'" -o ../build/%appName%_%GOOS%_%GOARCH%_%buildVersion%.exe
 @REM go build -o ../build/%appName%_%GOOS%_%GOARCH%_%buildVersion%.exe
 copy ..\build\%appName%_%GOOS%_%GOARCH%_%buildVersion%.exe ..\build_upx\
 echo Done %appName%_%GOOS%_%GOARCH%_%buildVersion%
@@ -47,7 +50,7 @@ set upxArgs=%upxArgs% %appName%_%GOOS%_%GOARCH%_%buildVersion%.exe
 
 set GOOS=linux
 set GOARCH=amd64
-go build -ldflags "-X 'main.ReleaseVersion=%buildVersion%' -X 'main.Mode=%Mode%' -X 'main.goVersion=%goVersion%' -X 'main.GitHash=%gitHash%' -X 'main.buildTime=%buildTime%'" -o ../build/%appName%_%GOOS%_%GOARCH%_%buildVersion%
+go build -ldflags "-X 'main.Major=%major%' -X 'main.Minor=%minor%'-X 'main.Patch=%patch%' -X 'main.ReleaseVersion=%buildVersion%' -X 'main.Mode=%Mode%' -X 'main.goVersion=%goVersion%' -X 'main.GitHash=%gitHash%' -X 'main.buildTime=%buildTime%'" -o ../build/%appName%_%GOOS%_%GOARCH%_%buildVersion%
 copy ..\build\%appName%_%GOOS%_%GOARCH%_%buildVersion% ..\build_upx\
 echo Done %appName%_%GOOS%_%GOARCH%_%buildVersion%
 set upxArgs=%upxArgs% %appName%_%GOOS%_%GOARCH%_%buildVersion%
@@ -55,21 +58,21 @@ set upxArgs=%upxArgs% %appName%_%GOOS%_%GOARCH%_%buildVersion%
 
 set GOOS=linux
 set GOARCH=arm64
-go build -ldflags "-X 'main.ReleaseVersion=%buildVersion%' -X 'main.Mode=%Mode%' -X 'main.goVersion=%goVersion%' -X 'main.GitHash=%gitHash%' -X 'main.buildTime=%buildTime%'" -o ../build/%appName%_%GOOS%_%GOARCH%_%buildVersion%
+go build -ldflags "-X 'main.Major=%major%' -X 'main.Minor=%minor%'-X 'main.Patch=%patch%' -X 'main.ReleaseVersion=%buildVersion%' -X 'main.Mode=%Mode%' -X 'main.goVersion=%goVersion%' -X 'main.GitHash=%gitHash%' -X 'main.buildTime=%buildTime%'" -o ../build/%appName%_%GOOS%_%GOARCH%_%buildVersion%
 copy ..\build\%appName%_%GOOS%_%GOARCH%_%buildVersion% ..\build_upx\
 echo Done %appName%_%GOOS%_%GOARCH%_%buildVersion%
 set upxArgs=%upxArgs% %appName%_%GOOS%_%GOARCH%_%buildVersion%
 
 set GOOS=darwin
 set GOARCH=amd64
-go build -ldflags "-X 'main.ReleaseVersion=%buildVersion%' -X 'main.Mode=%Mode%' -X 'main.goVersion=%goVersion%' -X 'main.GitHash=%gitHash%' -X 'main.buildTime=%buildTime%'" -o ../build/%appName%_%GOOS%_%GOARCH%_%buildVersion%
+go build -ldflags "-X 'main.Major=%major%' -X 'main.Minor=%minor%'-X 'main.Patch=%patch%' -X 'main.ReleaseVersion=%buildVersion%' -X 'main.Mode=%Mode%' -X 'main.goVersion=%goVersion%' -X 'main.GitHash=%gitHash%' -X 'main.buildTime=%buildTime%'" -o ../build/%appName%_%GOOS%_%GOARCH%_%buildVersion%
 copy ..\build\%appName%_%GOOS%_%GOARCH%_%buildVersion% ..\build_upx\
 echo Done %appName%_%GOOS%_%GOARCH%_%buildVersion%
 set upxArgs=%upxArgs% %appName%_%GOOS%_%GOARCH%_%buildVersion%
 
 set GOOS=darwin
 set GOARCH=arm64
-go build -ldflags "-X 'main.ReleaseVersion=%buildVersion%' -X 'main.Mode=%Mode%' -X 'main.goVersion=%goVersion%' -X 'main.GitHash=%gitHash%' -X 'main.buildTime=%buildTime%'" -o ../build/%appName%_%GOOS%_%GOARCH%_%buildVersion%
+go build -ldflags "-X 'main.Major=%major%' -X 'main.Minor=%minor%'-X 'main.Patch=%patch%' -X 'main.ReleaseVersion=%buildVersion%' -X 'main.Mode=%Mode%' -X 'main.goVersion=%goVersion%' -X 'main.GitHash=%gitHash%' -X 'main.buildTime=%buildTime%'" -o ../build/%appName%_%GOOS%_%GOARCH%_%buildVersion%
 copy ..\build\%appName%_%GOOS%_%GOARCH%_%buildVersion% ..\build_upx\
 echo Done %appName%_%GOOS%_%GOARCH%_%buildVersion%
 set upxArgs=%upxArgs% %appName%_%GOOS%_%GOARCH%_%buildVersion%
@@ -77,7 +80,7 @@ set upxArgs=%upxArgs% %appName%_%GOOS%_%GOARCH%_%buildVersion%
 set GOOS=linux
 set GOARCH=mipsle
 set GOMIPS=softfloat
-go build -ldflags "-X 'main.ReleaseVersion=%buildVersion%' -X 'main.Mode=%Mode%' -X 'main.goVersion=%goVersion%' -X 'main.GitHash=%gitHash%' -X 'main.buildTime=%buildTime%'" -o ../build/%appName%_%GOOS%_%GOARCH%_%buildVersion%
+go build -ldflags "-X 'main.Major=%major%' -X 'main.Minor=%minor%'-X 'main.Patch=%patch%' -X 'main.ReleaseVersion=%buildVersion%' -X 'main.Mode=%Mode%' -X 'main.goVersion=%goVersion%' -X 'main.GitHash=%gitHash%' -X 'main.buildTime=%buildTime%'" -o ../build/%appName%_%GOOS%_%GOARCH%_%buildVersion%
 copy ..\build\%appName%_%GOOS%_%GOARCH%_%buildVersion% ..\build_upx\
 echo Done %appName%_%GOOS%_%GOARCH%_%buildVersion%
 set upxArgs=%upxArgs% %appName%_%GOOS%_%GOARCH%_%buildVersion%
