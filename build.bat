@@ -86,6 +86,16 @@ echo Done %appName%_%GOOS%_%GOARCH%_%buildVersion%
 set upxArgs=%upxArgs% %appName%_%GOOS%_%GOARCH%_%buildVersion%
 echo ===================================================
 
+cd ../build
+certutil -hashfile bilicoin_windows_amd64_%buildVersion%.exe MD5
+certutil -hashfile bilicoin_windows_arm64_%buildVersion%.exe MD5
+certutil -hashfile bilicoin_linux_amd64_%buildVersion% MD5
+certutil -hashfile bilicoin_linux_arm64_%buildVersion% MD5
+certutil -hashfile bilicoin_darwin_amd64_%buildVersion% MD5
+certutil -hashfile bilicoin_darwin_arm64_%buildVersion% MD5
+certutil -hashfile bilicoin_linux_mipsle_%buildVersion% MD5
+echo ===================================================
+
 @REM echo %upxArgs%
 
 cd ..\\build_upx
