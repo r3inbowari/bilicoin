@@ -2,6 +2,7 @@ package bilicoin
 
 import (
 	"fmt"
+	"github.com/fatih/color"
 	"github.com/sirupsen/logrus"
 	"os"
 	"runtime"
@@ -69,15 +70,29 @@ type Entry struct {
 	level logrus.Level
 }
 
+var BuildMode = "DEV"
+
 func (en *Entry) Print() {
-	switch en.level {
-	case logrus.InfoLevel:
-		fmt.Printf("\x1b[%dm"+en.msg+" \x1b[0m\n", 32)
-	case logrus.WarnLevel:
-		fmt.Printf("\x1b[%dm"+en.msg+" \x1b[0m\n", 33)
-	case logrus.FatalLevel:
-		fmt.Printf("\x1b[%dm"+en.msg+" \x1b[0m\n", 31)
+	if BuildMode == "REL" {
+		switch en.level {
+		case logrus.InfoLevel:
+			color.Green(en.msg)
+		case logrus.WarnLevel:
+			color.Yellow(en.msg)
+		case logrus.FatalLevel:
+			color.Red(en.msg)
+		}
+	} else {
+		switch en.level {
+		case logrus.InfoLevel:
+			fmt.Printf("\x1b[%dm"+en.msg+" \x1b[0m\n", 32)
+		case logrus.WarnLevel:
+			fmt.Printf("\x1b[%dm"+en.msg+" \x1b[0m\n", 33)
+		case logrus.FatalLevel:
+			fmt.Printf("\x1b[%dm"+en.msg+" \x1b[0m\n", 31)
+		}
 	}
+
 }
 
 func Info(msg string, ext ...logrus.Fields) {
@@ -105,7 +120,11 @@ func Fatal(msg string, ext ...logrus.Fields) {
 }
 
 func Blue(msg string) {
-	fmt.Printf("\x1b[%dm"+msg+" \x1b[0m\n", 34)
+	if BuildMode == "REL" {
+		color.Blue(msg)
+	} else {
+		fmt.Printf("\x1b[%dm"+msg+" \x1b[0m\n", 34)
+	}
 }
 
 func AppInfo(gitHash, buildTime, goVersion string, version string) {

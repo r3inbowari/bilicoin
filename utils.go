@@ -129,8 +129,8 @@ func IsFile(path string) bool {
 }
 
 func InitConfig() {
-	Info("[FILE] Init user configuration")
 	if !Exists("bili.json") {
+		Info("[FILE] Init user configuration")
 		var config LocalConfig
 		var l = "debug"
 		config.Finger = "1777945899"

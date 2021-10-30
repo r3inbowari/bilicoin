@@ -17,12 +17,12 @@ ENV CGO_ENABLED=0
 RUN chmod 777 build.sh
 RUN  ./build.sh
 
-RUN chmod 777 ./build/bilicoin_linux_amd64_v1.0.9
+RUN chmod 777 ./build/bilicoin_linux_amd64_v1.0.10
 
 FROM alpine
 
 WORKDIR /app
 
-COPY --from=builder /app/build/bilicoin_linux_amd64_v1.0.9 .
+COPY --from=builder /app/build/bilicoin_linux_amd64_v1.0.10 .
 
-ENTRYPOINT ["./bilicoin_linux_amd64_v1.0.9", "-a"]
+ENTRYPOINT ["./bilicoin_linux_amd64_v1.0.10", "-a"]

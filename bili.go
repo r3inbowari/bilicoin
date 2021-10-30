@@ -528,7 +528,8 @@ func UserList() {
 }
 
 // InitBili bilicoin初始化
-func InitBili(ver, hash string, major, minor, patch string) {
+func InitBili(buildMode string, ver, hash string, major, minor, patch string) {
+	BuildMode = buildMode
 	releaseVersion = ver
 	releaseTag = hash
 	version.Major, _ = strconv.ParseInt(major, 10, 64)

@@ -3,6 +3,7 @@ package main
 import (
 	"bilicoin"
 	"fmt"
+	"github.com/fatih/color"
 	"github.com/jessevdk/go-flags"
 	"github.com/robfig/cron"
 	"github.com/sirupsen/logrus"
@@ -39,7 +40,11 @@ Options:
      eg: bilicoin -f 10023442 30 16 1 * * ?
 [-a] Run api server
 `
-	fmt.Printf("\x1b[%dm"+v+" \x1b[0m", 34)
+	if bilicoin.BuildMode == "REL" {
+		color.Blue(v)
+	} else {
+		fmt.Printf("\x1b[%dm"+v+" \x1b[0m", 34)
+	}
 }
 
 var (
@@ -63,7 +68,7 @@ func main() {
 		ReleaseVersion = "ver[DEV]"
 	}
 
-	bilicoin.InitBili(ReleaseVersion, GitHash, Major, Minor, Patch)
+	bilicoin.InitBili(Mode, ReleaseVersion, GitHash, Major, Minor, Patch)
 
 	go func() {
 		time.Sleep(time.Second)
