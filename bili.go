@@ -3,6 +3,7 @@ package bilicoin
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/robfig/cron"
 	"github.com/sirupsen/logrus"
 	"math/rand"
@@ -506,6 +507,24 @@ func GetAllUID() []string {
 		retVal = append(retVal, users[k].DedeUserID)
 	}
 	return retVal
+}
+
+func UserList() {
+	users := LoadUser()
+	fmt.Println("")
+	fmt.Println("total: " + strconv.Itoa(len(users)))
+	fmt.Println()
+	fmt.Println("| UID | Cron | FTQQ |")
+	for _, v := range users {
+		print("| ")
+		print(v.DedeUserID)
+		print(" | ")
+		print(v.Cron)
+		print(" | ")
+		print(v.FTSwitch)
+		println(" | ")
+	}
+	fmt.Println("")
 }
 
 // InitBili bilicoin初始化

@@ -8,7 +8,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"os"
 	"runtime"
-	"strconv"
+	"time"
 )
 
 type cmdOptions struct {
@@ -65,6 +65,11 @@ func main() {
 
 	bilicoin.InitBili(ReleaseVersion, GitHash, Major, Minor, Patch)
 
+	go func() {
+		time.Sleep(time.Second)
+		bilicoin.CheckAndUpdateAndReload()
+	}()
+
 	release()
 	// example:
 	// add
@@ -98,21 +103,7 @@ func release() {
 
 	if opts.List {
 		// 用户列表
-		users := bilicoin.LoadUser()
-		fmt.Println("")
-		fmt.Println("total: " + strconv.Itoa(len(users)))
-		fmt.Println()
-		fmt.Println("| UID | Cron | FTQQ |")
-		for _, v := range users {
-			print("| ")
-			print(v.DedeUserID)
-			print(" | ")
-			print(v.Cron)
-			print(" | ")
-			print(v.FTSwitch)
-			println(" | ")
-		}
-		fmt.Println("")
+		bilicoin.UserList()
 		return
 	} else if opts.Cron {
 		// Cron

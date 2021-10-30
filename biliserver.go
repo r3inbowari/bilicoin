@@ -17,11 +17,6 @@ var BiliServer *http.Server
 
 func BCApplication() {
 
-	go func() {
-		time.Sleep(time.Second)
-		CheckAndUpdateAndReload()
-	}()
-
 	Info("[BCS] BILICOIN api Mode running")
 	reset()
 	Info("[BCS] Listened on " + GetConfig(false).APIAddr)
@@ -48,13 +43,14 @@ func BCApplication() {
 	}
 	err := BiliServer.ListenAndServe()
 	//err := http.ListenAndServe(GetConfig(false).APIAddr, cors)
-	if strings.HasSuffix(err.Error(), "normally permitted.") {
-		Fatal("[BCS] Only one usage of each socket address is normally permitted.")
+	if strings.HasSuffix(err.Error(), "normally permitted.") || strings.Index(err.Error(), "bind") != -1 {
+		Fatal("[BCS] Only one usage of each socket address is normally permitted.", logrus.Fields{"err": err.Error()})
 		Info("[BCS] EXIT 1002")
 		os.Exit(1002)
 	}
 
 	// goroutine block here not need sleep
+	Info("[BCS] Service will be terminated soon", logrus.Fields{"err": err.Error()})
 	time.Sleep(time.Second * 10)
 }
 

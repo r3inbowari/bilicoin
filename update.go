@@ -44,6 +44,10 @@ func ExecBatchFromWindows(path string) error {
 }
 
 func Reload(path string) error {
+	if runtime.GOOS == "linux" || runtime.GOOS == "darwin" {
+		exec.Command("chmod", "777", path)
+		path = "./" + path
+	}
 	// init接管
 	cmd := exec.Command(path, "-a")
 	cmd.Stdout = os.Stdout
@@ -87,7 +91,7 @@ func CheckAndUpdateAndReload() {
 	systemType := runtime.GOOS
 
 	name := "bilicoin"
-	systemType = "linux"
+	// systemType = "linux"
 
 	// get md5 digest
 	ok, digest, verStr := CheckUpdate()
@@ -130,7 +134,7 @@ func DownloadExec(name, version string) error {
 		dUrl += ".exe"
 		name += ".exe"
 	}
-	// Info(dUrl)
+	Info(dUrl)
 
 	var bar *ProgressBar
 
@@ -166,7 +170,7 @@ func Download(url, name string, lenCall func(fileLength int64), fb func(length, 
 
 	lenCall(fsize)
 
-	file, err := os.Create(name)
+	file, err := os.OpenFile(name, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0777)
 	if err != nil {
 		return err
 	}
@@ -236,7 +240,7 @@ func CheckUpdate() (bool, string, string) {
 		Info("[UP] Found new version", logrus.Fields{"major": defs.Major, "minor": defs.Minor, "patch": defs.Patch})
 		for k, v := range defs.Types {
 			if v == runtime.GOOS+"_"+runtime.GOARCH {
-				return true, defs.Digests[k], "v" + strconv.FormatInt(version.Major, 10) + "." + strconv.FormatInt(version.Minor, 10) + "." + strconv.FormatInt(version.Patch, 10)
+				return true, defs.Digests[k], "v" + strconv.FormatInt(int64(defs.Major), 10) + "." + strconv.FormatInt(int64(defs.Minor), 10) + "." + strconv.FormatInt(int64(defs.Patch), 10)
 			}
 		}
 	}
