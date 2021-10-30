@@ -22,7 +22,7 @@ func BCApplication() {
 		CheckAndUpdateAndReload()
 	}()
 
-	Info("[BCS] BILICOIN api RunningMode running")
+	Info("[BCS] BILICOIN api Mode running")
 	reset()
 	Info("[BCS] Listened on " + GetConfig(false).APIAddr)
 	r := mux.NewRouter()

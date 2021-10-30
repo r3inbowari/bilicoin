@@ -90,14 +90,14 @@ func CheckAndUpdateAndReload() {
 	systemType = "linux"
 
 	// get md5 digest
-	ok, digest := CheckUpdate()
+	ok, digest, verStr := CheckUpdate()
 	if !ok {
 		return
 	}
 	// var digest = "fba41dcef7634ed0b6c92a22c32ea2f8"
 
 	// download
-	DownloadExec("bilicoin", "v1.0.6")
+	DownloadExec("bilicoin", verStr)
 
 	// verify
 	verify := DigestVerify("bilicoin", digest)
@@ -130,12 +130,12 @@ func DownloadExec(name, version string) error {
 		dUrl += ".exe"
 		name += ".exe"
 	}
-	Info(dUrl)
+	// Info(dUrl)
 
 	var bar *ProgressBar
 
 	err := Download(dUrl, name, func(fileLength int64) {
-		Info("[UP] collected file size", logrus.Fields{"size": fileLength})
+		Info("[UP] downloading... collected file size", logrus.Fields{"size": fileLength})
 		bar = NewProgressBar(fileLength)
 	}, func(length, downLen int64) {
 		bar.Play(downLen)
@@ -211,22 +211,22 @@ type Default struct {
 	Digests []string `json:"digests"`
 }
 
-func CheckUpdate() (bool, string) {
+func CheckUpdate() (bool, string, string) {
 
 	res, err := http.Get(host + "bilicoin/bin/default.json")
 	if err != nil {
-		return false, ""
+		return false, "", ""
 	}
 
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		return false, ""
+		return false, "", ""
 	}
 
 	var defs Default
 	err = json.Unmarshal(body, &defs)
 	if err != nil {
-		return false, ""
+		return false, "", ""
 	}
 
 	Info("[UP] Current version", logrus.Fields{"major": version.Major, "minor": version.Minor, "patch": version.Patch})
@@ -236,9 +236,9 @@ func CheckUpdate() (bool, string) {
 		Info("[UP] Found new version", logrus.Fields{"major": defs.Major, "minor": defs.Minor, "patch": defs.Patch})
 		for k, v := range defs.Types {
 			if v == runtime.GOOS+"_"+runtime.GOARCH {
-				return true, defs.Digests[k]
+				return true, defs.Digests[k], "v" + strconv.FormatInt(version.Major, 10) + "." + strconv.FormatInt(version.Minor, 10) + "." + strconv.FormatInt(version.Patch, 10)
 			}
 		}
 	}
-	return false, ""
+	return false, "", ""
 }
