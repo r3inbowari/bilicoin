@@ -250,6 +250,7 @@ func CheckUpdate() (bool, string, string) {
 
 func SoftwareUpdate() {
 	if BuildMode == "REL" {
+		CheckAndUpdateAndReload()
 		cm := cron.New()
 		spec := "0 0 12 * * ?"
 		_ = cm.AddFunc(spec, func() {
