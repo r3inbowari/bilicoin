@@ -19,7 +19,8 @@
 7. 支持服务模式
 8. [Demo 查看](http://r3in.top:9090/version "Demo") [QR Demo](http://r3in.top:3000/bilicoin/)
 9. 支持自动更新
-10. 有空就更新
+10. 银瓜子转硬币（需要手动开启 `sw_convert_coin` 改为 `true`）
+11. 有空就更新
 
 ## 获取工具
 
