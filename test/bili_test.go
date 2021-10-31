@@ -10,7 +10,7 @@ import (
 )
 
 func TestBili(t *testing.T) {
-	bilicoin.InitBili("v1.0.0", "cb0dc838e04e841f193f383e06e9d25a534c5809", "1", "1", "1")
+	bilicoin.InitBili("dev", "v1.0.0", "cb0dc838e04e841f193f383e06e9d25a534c5809", "1", "1", "1")
 
 	// release()
 	bilicoin.CronTaskLoad()
@@ -22,6 +22,26 @@ func TestGetLog(t *testing.T) {
 	if len(bilicoin.GetConfig(false).BiU) > 0 {
 		bilicoin.GetConfig(false).BiU[0].GetBiliCoinLog()
 		println("size -> ", bilicoin.GetConfig(false).BiU[0].DropCoinCount)
+	} else {
+		println("please add a user to test")
+	}
+}
+
+// 获取钱包数据
+func TestGetWallet(t *testing.T) {
+	if len(bilicoin.GetConfig(false).BiU) > 0 {
+		bilicoin.GetConfig(false).BiU[0].GetBiliWallet()
+		//println("size -> ", bilicoin.GetConfig(false).BiU[0].DropCoinCount)
+	} else {
+		println("please add a user to test")
+	}
+}
+
+// 获取钱包数据
+func TestConvert2Coin(t *testing.T) {
+	if len(bilicoin.GetConfig(false).BiU) > 0 {
+		bilicoin.GetConfig(false).BiU[0].Silver2Coin()
+		//println("size -> ", bilicoin.GetConfig(false).BiU[0].DropCoinCount)
 	} else {
 		println("please add a user to test")
 	}

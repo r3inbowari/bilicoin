@@ -45,13 +45,15 @@ type BiliUser struct {
 	Cron          string     `json:"cron"`                      // Config -> 执行表达式
 	FT            string     `json:"ft"`                        // Config -> 方糖[可选]
 	FTSwitch      bool       `json:"ft_switch"`                 // Config -> 方糖开关
+	ConvertCoin   bool       `json:"sw_convert_coin"`           // Config -> 银瓜子兑换硬币
 	Job           *cron.Cron
 }
 
 type ABi struct {
-	BCoins    int       `json:"bCoins"`     // B柯拉
-	Coins     int       `json:"coins"`      // 硬币
-	Nick      string    `json:"uname"`      // 昵称
+	Gold      int       `json:"gold"`       // 金瓜子
+	Silver    int       `json:"silver"`     // 银瓜子
+	Coins     float64   `json:"coins"`      // 硬币
+	Uname     string    `json:"uname"`      // 昵称
 	Face      string    `json:"face"`       // 头像地址
 	Status    string    `json:"userStatus"` // 账号状态
 	LevelInfo LevelInfo `json:"level_info"` // 等级
@@ -75,9 +77,14 @@ type BiliInfo struct {
 }
 
 type BiliData struct {
-	List []CoinLog `json:"list,omitempty"`
-	Like string    `json:"like,omitempty"`
-	BVID string    `json:"bvid,omitempty"`
+	List     []CoinLog `json:"list,omitempty"`
+	Like     string    `json:"like,omitempty"`
+	BVID     string    `json:"bvid,omitempty"`
+	BillCoin float64   `json:"billCoin,omitempty"`
+	Gold     int       `json:"gold,omitempty"`
+	Silver   int       `json:"silver,omitempty"`
+	Face     string    `json:"face"`
+	Uname    string    `json:"uname"`
 }
 
 type CoinLog struct {
@@ -294,6 +301,62 @@ func (biu *BiliUser) BiliScanAwait() {
 	}
 }
 
+func (biu *BiliUser) Silver2Coin() error {
+	url := "https://api.live.bilibili.com/xlive/revenue/v1/wallet/silver2coin"
+
+	//payload := strings.NewReader()
+
+	csrf := `csrf_token=7d2e2fbbac654107f0a577d12cd7a48e&csrf=7d2e2fbbac654107f0a577d12cd7a48e`
+
+	res, err := Post2(url, func(reqPoint *http.Request) {
+		biu.NormalAuthHeader(reqPoint)
+
+		// raw 提交
+		reqPoint.Header.Add("content-type", "application/x-www-form-urlencoded")
+		reqPoint.Header.Add("origin", "https://link.bilibili.com")
+		reqPoint.Header.Add("referer", "https://link.bilibili.com/p/center/index")
+	}, csrf)
+
+	if res != nil && err == nil {
+		var msg BiliInfo
+		_ = json.NewDecoder(res.Body).Decode(&msg)
+
+		if msg.Message == "兑换成功" {
+			Info("[TASK] use 700 silver to one bili coin", logrus.Fields{"remain silver": msg.Data.Silver})
+		} else {
+			Warn("[TASK] bili coin convert failed")
+		}
+	}
+	return nil
+}
+
+func (biu *BiliUser) GetBiliWallet() error {
+	url := "https://api.live.bilibili.com/xlive/web-ucenter/user/get_user_info"
+	res, err := GET(url, func(reqPoint *http.Request) {
+		biu.NormalAuthHeader(reqPoint)
+
+		reqPoint.Header.Add("origin", "https://live.bilibili.com")
+		reqPoint.Header.Add("referer", "https://live.bilibili.com")
+	})
+
+	if res != nil && err == nil {
+		var msg BiliInfo
+		_ = json.NewDecoder(res.Body).Decode(&msg)
+
+		if msg.TTL < 1 {
+			return errors.New("the service is unreachable or an unknown error has occurred")
+		}
+
+		biu.Bi.Gold = msg.Data.Gold
+		biu.Bi.Coins = msg.Data.BillCoin
+		biu.Bi.Silver = msg.Data.Silver
+		biu.Bi.Face = msg.Data.Face
+		biu.Bi.Uname = msg.Data.Uname
+		biu.InfoUpdate()
+	}
+	return nil
+}
+
 // GetBiliCoinLog 硬币日志获取
 func (biu *BiliUser) GetBiliCoinLog() error {
 	url := "https://api.bilibili.com/x/member/web/coin/log?jsonp=jsonp"
@@ -365,7 +428,7 @@ func (biu *BiliUser) NormalAuthHeader(reqPoint *http.Request) {
 	reqPoint.Header.Add("accept", "application/json, text/plain, */*")
 	// reqPoint.Header.Add("accept-encoding", "deflate, br")
 	reqPoint.Header.Add("sec-fetch-dest", "empty")
-	reqPoint.Header.Add("sec-fetch-RunningMode", "cors")
+	reqPoint.Header.Add("sec-fetch-mode", "cors")
 	reqPoint.Header.Add("sec-fetch-site", "same-origin")
 }
 
@@ -428,7 +491,14 @@ func (biu *BiliUser) DropTaskStart() {
 	Info("[CRON] Add task", logrus.Fields{"UID": biu.DedeUserID, "Cron": biu.Cron, "TaskID": uuid})
 	_ = c.AddFunc(biu.Cron, func() {
 		// TODO fix: loop drop may be happen...
-		biu.GetBiliCoinLog()
+		_ = biu.GetBiliCoinLog()
+		_ = biu.GetBiliWallet()
+
+		// 使用银瓜子兑换硬币一枚
+		if biu.ConvertCoin && biu.Bi.Silver >= 700 {
+			biu.Silver2Coin()
+		}
+
 		for true {
 			if biu.DropCoinCount > 4 {
 				biu.InfoUpdate()
@@ -458,6 +528,7 @@ func CronTaskLoad() {
 		return
 	}
 	for k, _ := range bius {
+		// 投币日志
 		err := bius[k].GetBiliCoinLog()
 		if err != nil {
 			// 当前账号获取日志失败，跳过此账号
@@ -465,6 +536,15 @@ func CronTaskLoad() {
 			Warn("user load error, can not get coin log", logrus.Fields{"err": err.Error(), "id": bius[k].DedeUserID})
 			continue
 		}
+		// 账号信息获取
+		err = bius[k].GetBiliWallet()
+		if err != nil {
+			// 当前账号获取用户信息失败，跳过此账号
+			// 过期、未知错误、服务不可达、解析错误
+			Warn("user load error, can not get coin log", logrus.Fields{"err": err.Error(), "id": bius[k].DedeUserID})
+			continue
+		}
+		// 投币任务启动
 		bius[k].DropTaskStart()
 	}
 }

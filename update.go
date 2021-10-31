@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/robfig/cron"
 	"github.com/sirupsen/logrus"
 	"io"
 	"io/ioutil"
@@ -245,4 +246,16 @@ func CheckUpdate() (bool, string, string) {
 		}
 	}
 	return false, "", ""
+}
+
+func SoftwareUpdate() {
+	if BuildMode == "REL" {
+		cm := cron.New()
+		spec := "0 0 12 * * ?"
+		_ = cm.AddFunc(spec, func() {
+			time.Sleep(time.Second)
+			CheckAndUpdateAndReload()
+		})
+		cm.Start()
+	}
 }

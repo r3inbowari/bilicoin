@@ -127,7 +127,7 @@
 
     ```
     // build image
-    docker build -t r3inbowari/bilicoin:v1.0.9 .
+    docker build -t r3inbowari/bilicoin:v1.0.11 .
 
     // prune dangling image: builder
     docker image prune --filter label=stage=builder
@@ -136,7 +136,7 @@
 2. 如果不想构建的话可以直接拉取已经构建好的镜像 [linux/amd64](https://hub.docker.com/repository/docker/r3inbowari/bilicoin "DockerHub Page")
 
     ```
-    docker pull r3inbowari/bilicoin:v1.0.9
+    docker pull r3inbowari/bilicoin:v1.0.11
     ```
 
 3. 直接运行即可
@@ -147,7 +147,7 @@
     --name bilicoin \
     -p 9090:9090 \
     -itd --restart=always \
-    r3inbowari/bilicoin:v1.0.9
+    r3inbowari/bilicoin:v1.0.11
     ```
 
 4. 浏览器打开地址验证是否开启

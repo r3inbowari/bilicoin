@@ -9,7 +9,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"os"
 	"runtime"
-	"time"
 )
 
 type cmdOptions struct {
@@ -70,10 +69,7 @@ func main() {
 
 	bilicoin.InitBili(Mode, ReleaseVersion, GitHash, Major, Minor, Patch)
 
-	go func() {
-		time.Sleep(time.Second)
-		bilicoin.CheckAndUpdateAndReload()
-	}()
+	bilicoin.SoftwareUpdate()
 
 	release()
 	// example:
