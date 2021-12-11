@@ -5,9 +5,11 @@ import (
 	"errors"
 	"fmt"
 	qrcodeTerminal "github.com/Baozisoftware/qrcode-terminal-go"
+	. "github.com/r3inbowari/zlog"
 	"github.com/robertkrimen/otto"
 	"github.com/satori/go.uuid"
 	"io/ioutil"
+	"log"
 	"math"
 	"math/rand"
 	"net/http"
@@ -130,7 +132,7 @@ func IsFile(path string) bool {
 
 func InitConfig() {
 	if !Exists("bili.json") {
-		Info("[FILE] Init user configuration")
+		Log.Info("[FILE] Init user configuration")
 		var config LocalConfig
 		var l = "debug"
 		config.Finger = "1777945899"

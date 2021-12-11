@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	. "github.com/r3inbowari/zlog"
 	"github.com/robfig/cron"
 	"github.com/sirupsen/logrus"
 	"math/rand"
@@ -202,12 +203,12 @@ func (biu *BiliUser) GetBiliLoginInfo(cron *cron.Cron) {
 			biu.SESSDATA = cookies[4].Value
 			biu.BiliJCT = cookies[6].Value
 			biu.Login = true
-			Info("Login Succeed~", logrus.Fields{"UID": biu.DedeUserID})
+			Log.WithFields(logrus.Fields{"UID": biu.DedeUserID}).Info("Login Succeed~")
 
 			biu.InfoUpdate()
 		} else {
 			if result.Message != "" {
-				Info(result.Message)
+				Log.Info(result.Message)
 			}
 		}
 	}
@@ -270,14 +271,14 @@ func (biu *BiliUser) InfoUpdate() {
 		if biu.DedeUserID == conf.BiU[k].DedeUserID {
 			conf.BiU[k] = *biu
 			if err := conf.SetConfig(); err != nil {
-				Warn("[FILE] error json setting")
+				Log.Warn("[FILE] error json setting")
 			}
 			return
 		}
 	}
 	conf.BiU = append(conf.BiU, *biu)
 	if err := conf.SetConfig(); err != nil {
-		Warn("[FILE] error json setting")
+		Log.Warn("[FILE] error json setting")
 	}
 }
 
@@ -294,7 +295,7 @@ func (biu *BiliUser) BiliScanAwait() {
 
 	for true {
 		if biu.DedeUserID != "" {
-			Info("Login process will exit after 5 seconds")
+			Log.Info("Login process will exit after 5 seconds")
 			time.Sleep(time.Second * 5)
 			os.Exit(0)
 		}
@@ -322,9 +323,9 @@ func (biu *BiliUser) Silver2Coin() error {
 		_ = json.NewDecoder(res.Body).Decode(&msg)
 
 		if msg.Message == "兑换成功" {
-			Info("[TASK] use 700 silver to one bili coin", logrus.Fields{"remain silver": msg.Data.Silver})
+			Log.Info("[TASK] use 700 silver to one bili coin", logrus.Fields{"remain silver": msg.Data.Silver})
 		} else {
-			Warn("[TASK] bili coin convert failed")
+			Log.Warn("[TASK] bili coin convert failed")
 		}
 	}
 	return nil
@@ -399,7 +400,7 @@ func (biu *BiliUser) GetBiliCoinLog() error {
 			}
 		}
 	}
-	Info("[USER] Drop history", logrus.Fields{"dropCount": biu.DropCoinCount, "UID": biu.DedeUserID})
+	Log.WithFields(logrus.Fields{"dropCount": biu.DropCoinCount, "UID": biu.DedeUserID}).Info("[USER] Drop history")
 	return nil
 }
 
@@ -437,7 +438,7 @@ func (biu *BiliUser) DropCoin(bv string) {
 	// TODO fix: panic if error-bv inputted
 	aid := BVCovertDec(bv)
 	if biu.DropCoinCount > 4 {
-		Warn("number of coins tossed today >= 5", logrus.Fields{"BVID": bv, "AVID": aid, "UID": biu.DedeUserID, "dropCount": biu.DropCoinCount})
+		Log.WithFields(logrus.Fields{"BVID": bv, "AVID": aid, "UID": biu.DedeUserID, "dropCount": biu.DropCoinCount}).Warn("number of coins tossed today >= 5")
 		biu.SendMessage2WeChat(biu.DedeUserID + "打赏上限")
 		return
 	}
@@ -454,10 +455,10 @@ func (biu *BiliUser) DropCoin(bv string) {
 		_ = json.NewDecoder(res.Body).Decode(&msg)
 		if msg.Message == "0" {
 			biu.DropCoinCount++
-			Info("[TASK] Drop succeed", logrus.Fields{"BVID": bv, "AVID": aid, "UID": biu.DedeUserID, "dropCount": biu.DropCoinCount})
+			Log.WithFields(logrus.Fields{"BVID": bv, "AVID": aid, "UID": biu.DedeUserID, "dropCount": biu.DropCoinCount}).Info("[TASK] Drop succeed")
 			biu.SendMessage2WeChat(biu.DedeUserID + "打赏" + bv + "成功")
 		} else if msg.Message == "超过投币上限啦~" {
-			Info("[TASK] Drop limited", logrus.Fields{"BVID": bv, "AVID": aid, "UID": biu.DedeUserID, "dropCount": biu.DropCoinCount})
+			Log.WithFields(logrus.Fields{"BVID": bv, "AVID": aid, "UID": biu.DedeUserID, "dropCount": biu.DropCoinCount}).Info("[TASK] Drop limited")
 		}
 	}
 }
@@ -488,7 +489,7 @@ func (biu *BiliUser) DropTaskStart() {
 	c := cron.New()
 	uuid := CreateUUID()
 	taskMap.Store(uuid, c)
-	Info("[CRON] Add task", logrus.Fields{"UID": biu.DedeUserID, "Cron": biu.Cron, "TaskID": uuid})
+	Log.WithFields(logrus.Fields{"UID": biu.DedeUserID, "Cron": biu.Cron, "TaskID": uuid}).Info("[CRON] Add task")
 	_ = c.AddFunc(biu.Cron, func() {
 		// TODO fix: loop drop may be happen...
 		_ = biu.GetBiliCoinLog()
@@ -507,7 +508,7 @@ func (biu *BiliUser) DropTaskStart() {
 			biu.RandDrop()
 			time.Sleep(Random(60))
 		}
-		Info("[CRON] Task Completed", logrus.Fields{"UID": biu.DedeUserID})
+		Log.WithFields(logrus.Fields{"UID": biu.DedeUserID}).Info("[CRON] Task Completed")
 	})
 	c.Start()
 }
@@ -518,13 +519,14 @@ func CronTaskLoad() {
 	// exit code 1001
 	bius := GetConfig(true).BiU
 	if len(bius) == 0 && RunningMode == Simple {
-		Warn("[CRON] biu not found: please make sure that at least one user cookies exists in bili.json file")
-		Warn("[CRON] tip: use '-n' option to create a new user cookies by bilibili-mobile-client QR Login")
-		Info("[CRON] EXIT 1001")
+		Log.Warn("[CRON] biu not found: please make sure that at least one user cookies exists in bili.json file")
+		Log.Warn("[CRON] tip: use '-n' option to create a new user cookies by bilibili-mobile-client QR Login")
+		Log.Info("[CRON] EXIT 1001")
+		time.Sleep(time.Second * 5)
 		os.Exit(1001)
 	}
 	if len(bius) == 0 {
-		Info("[USER] Not found users")
+		Log.Info("[USER] Not found users")
 		return
 	}
 	for k, _ := range bius {
@@ -533,7 +535,7 @@ func CronTaskLoad() {
 		if err != nil {
 			// 当前账号获取日志失败，跳过此账号
 			// 过期、未知错误、服务不可达、解析错误
-			Warn("user load error, can not get coin log", logrus.Fields{"err": err.Error(), "id": bius[k].DedeUserID})
+			Log.WithFields(logrus.Fields{"err": err.Error(), "id": bius[k].DedeUserID}).Warn("user load error, can not get coin log")
 			continue
 		}
 		// 账号信息获取
@@ -541,7 +543,7 @@ func CronTaskLoad() {
 		if err != nil {
 			// 当前账号获取用户信息失败，跳过此账号
 			// 过期、未知错误、服务不可达、解析错误
-			Warn("user load error, can not get coin log", logrus.Fields{"err": err.Error(), "id": bius[k].DedeUserID})
+			Log.WithFields(logrus.Fields{"err": err.Error(), "id": bius[k].DedeUserID}).Warn("user load error, can not get coin log")
 			continue
 		}
 		// 投币任务启动
@@ -609,12 +611,11 @@ func UserList() {
 
 // InitBili bilicoin初始化
 func InitBili(buildMode string, ver, hash string, major, minor, patch string) {
-	BuildMode = buildMode
+	// BuildMode = buildMode
 	releaseVersion = ver
 	releaseTag = hash
 	version.Major, _ = strconv.ParseInt(major, 10, 64)
 	version.Minor, _ = strconv.ParseInt(minor, 10, 64)
 	version.Patch, _ = strconv.ParseInt(patch, 10, 64)
 	InitConfig()
-	// InitLogger()
 }

@@ -3,6 +3,7 @@ package bilicoin
 import (
 	"context"
 	"github.com/gorilla/mux"
+	. "github.com/r3inbowari/zlog"
 	"github.com/robfig/cron"
 	"github.com/sirupsen/logrus"
 	"github.com/wuwenbao/gcors"
@@ -17,9 +18,9 @@ var BiliServer *http.Server
 
 func BCApplication() {
 
-	Info("[BCS] BILICOIN api Mode running")
+	Log.Info("[BCS] BILICOIN api Mode running")
 	reset()
-	Info("[BCS] Listened on " + GetConfig(false).APIAddr)
+	Log.Info("[BCS] Listened on " + GetConfig(false).APIAddr)
 	r := mux.NewRouter()
 
 	r.HandleFunc("/{uid}/ft", HandleFT)
@@ -44,26 +45,26 @@ func BCApplication() {
 	err := BiliServer.ListenAndServe()
 	//err := http.ListenAndServe(GetConfig(false).APIAddr, cors)
 	if strings.HasSuffix(err.Error(), "normally permitted.") || strings.Index(err.Error(), "bind") != -1 {
-		Fatal("[BCS] Only one usage of each socket address is normally permitted.", logrus.Fields{"err": err.Error()})
-		Info("[BCS] EXIT 1002")
+		Log.WithFields(logrus.Fields{"err": err.Error()}).Fatal("[BCS] Only one usage of each socket address is normally permitted.")
+		Log.Info("[BCS] EXIT 1002")
 		os.Exit(1002)
 	}
 
 	// goroutine block here not need sleep
-	Info("[BCS] Service will be terminated soon", logrus.Fields{"err": err.Error()})
+	Log.WithFields(logrus.Fields{"err": err.Error()}).Info("[BCS] Service will be terminated soon")
 	time.Sleep(time.Second * 10)
 }
 
 func Shutdown(ctx context.Context) {
 	if BiliServer != nil {
-		Info("[BSC] releasing server now...")
+		Log.Info("[BSC] releasing server now...")
 		err := BiliServer.Shutdown(ctx)
 		if err != nil {
-			Fatal("[BSC] Shutdown failed")
-			Info("[BCS] EXIT 1002")
+			Log.Fatal("[BSC] Shutdown failed")
+			Log.Info("[BCS] EXIT 1002")
 			os.Exit(1011)
 		}
-		Info("[BSC] release completed")
+		Log.Info("[BSC] release completed")
 	}
 }
 
@@ -93,7 +94,7 @@ func HandleFT(w http.ResponseWriter, r *http.Request) {
 			biu.FTSwitch = true
 		}
 		biu.InfoUpdate()
-		Info("[BCS] FTQQ secret key save completed", logrus.Fields{"UID": uid, "Key": key})
+		Log.WithFields(logrus.Fields{"UID": uid, "Key": key}).Info("[BCS] FTQQ secret key save completed")
 	}
 	ResponseCommon(w, "try succeed", "ok", 1, http.StatusOK, 0)
 }
@@ -107,12 +108,12 @@ func HandleCron(w http.ResponseWriter, r *http.Request) {
 	if biu, ok := GetUser(uid); ok == nil && biu != nil {
 		if _, err := cron.Parse(cronStr); err != nil {
 			ResponseCommon(w, "[BCS] incorrect cron spec, please check and try again", "ok", 1, http.StatusOK, 0)
-			Info("[BCS] incorrect cron spec, please check and try again", logrus.Fields{"UID": uid, "Cron": cronStr})
+			Log.WithFields(logrus.Fields{"UID": uid, "Cron": cronStr}).Info("[BCS] incorrect cron spec, please check and try again")
 			return
 		}
 		biu.Cron = cronStr
 		biu.InfoUpdate()
-		Info("[BCS] Cron save completed by web", logrus.Fields{"UID": uid, "Cron": cronStr})
+		Log.WithFields(logrus.Fields{"UID": uid, "Cron": cronStr}).Info("[BCS] Cron save completed by web")
 	}
 	reset()
 	ResponseCommon(w, "try succeed", "ok", 1, http.StatusOK, 0)
@@ -145,7 +146,7 @@ func HandleUserAdd(w http.ResponseWriter, r *http.Request) {
 		// 提供回调
 		user, _ := CreateUser()
 		_ = user.GetQRCode()
-		Info("[BCS] qrcode created", logrus.Fields{"oauth": user.OAuth.OAuthKey})
+		Log.WithFields(logrus.Fields{"oauth": user.OAuth.OAuthKey}).Info("[BCS] qrcode created")
 		loginMap.Store(user.OAuth.OAuthKey, user)
 		time.AfterFunc(time.Minute*3, func() {
 			loginMap.Delete(user.OAuth.OAuthKey)
@@ -170,16 +171,16 @@ func HandleUserAdd(w http.ResponseWriter, r *http.Request) {
 func HandleUserDel(w http.ResponseWriter, r *http.Request) {
 	_ = r.ParseForm()
 	uid := r.Form.Get("uid")
-	Info("[BCS] Try to delete user", logrus.Fields{"UID": uid})
+	Log.WithFields(logrus.Fields{"UID": uid}).Info("[BCS] Try to delete user")
 	_ = DelUser(uid)
 	reset()
 	ResponseCommon(w, "try succeed", "ok", 1, http.StatusOK, 0)
 }
 
 func reset() {
-	Warn("[BSC] Release task resource")
+	Log.Warn("[BSC] Release task resource")
 	taskMap.Range(func(key, value interface{}) bool {
-		Info("[BSC] Try to stop cron", logrus.Fields{"TaskID": key.(string)})
+		Log.WithFields(logrus.Fields{"TaskID": key.(string)}).Info("[BSC] Try to stop cron")
 		value.(*cron.Cron).Stop()
 		taskMap.Delete(key)
 		return true

@@ -2,13 +2,13 @@ package main
 
 import (
 	"bilicoin"
-	"fmt"
-	"github.com/fatih/color"
 	"github.com/jessevdk/go-flags"
+	. "github.com/r3inbowari/zlog"
 	"github.com/robfig/cron"
 	"github.com/sirupsen/logrus"
 	"os"
 	"runtime"
+	"strconv"
 )
 
 type cmdOptions struct {
@@ -39,11 +39,7 @@ Options:
      eg: bilicoin -f 10023442 30 16 1 * * ?
 [-a] Run api server
 `
-	if bilicoin.BuildMode == "REL" {
-		color.Blue(v)
-	} else {
-		fmt.Printf("\x1b[%dm"+v+" \x1b[0m", 34)
-	}
+	Log.Blue(v)
 }
 
 var (
@@ -59,6 +55,7 @@ var (
 var Mode = "DEV"
 
 func main() {
+	InitGlobalLogger()
 
 	if Mode == "DEV" {
 		buildTime = "Thu Oct 01 00:00:00 1970 +0800"
@@ -69,7 +66,7 @@ func main() {
 
 	bilicoin.InitBili(Mode, ReleaseVersion, GitHash, Major, Minor, Patch)
 
-	bilicoin.SoftwareUpdate()
+	bilicoin.SoftwareUpdate(Mode)
 
 	release()
 	// example:
@@ -118,14 +115,14 @@ func release() {
 		cronStr = args[1] + " " + args[2] + " " + args[3] + " " + args[4] + " " + args[5] + " " + args[6]
 		if biu, ok := bilicoin.GetUser(uid); ok == nil && biu != nil {
 			if _, err = cron.Parse(cronStr); err != nil {
-				bilicoin.Info("incorrect cron spec, please check and try again", logrus.Fields{"UID": uid, "Cron": cronStr})
+				Log.WithFields(logrus.Fields{"UID": uid, "Cron": cronStr}).Info("incorrect cron spec, please check and try again")
 				ret = 3
 				return
 			}
 			biu.Cron = cronStr
 			biu.InfoUpdate()
 		}
-		bilicoin.Info("cron save completed", logrus.Fields{"UID": uid, "Cron": cronStr})
+		Log.WithFields(logrus.Fields{"UID": uid, "Cron": cronStr}).Info("cron save completed")
 	} else if opts.FT {
 		// 方糖QQ
 		if len(args) != 2 {
@@ -146,7 +143,7 @@ func release() {
 			biu.FTSwitch = true
 			biu.InfoUpdate()
 		}
-		bilicoin.Info("ftqq secret save completed", logrus.Fields{"UID": uid, "Key": key})
+		Log.WithFields(logrus.Fields{"UID": uid, "Key": key}).Info("ftqq secret save completed")
 	} else if opts.Delete {
 		// 删除
 		if len(args) != 1 {
@@ -154,7 +151,7 @@ func release() {
 			ret = 2
 			return
 		}
-		bilicoin.Info("try to delete user", logrus.Fields{"UID": args[0]})
+		Log.WithFields(logrus.Fields{"UID": args[0]}).Info("try to delete user")
 		_ = bilicoin.DelUser(args[0])
 	} else if opts.New {
 		// 新建
@@ -170,13 +167,13 @@ func release() {
 	} else if opts.Start {
 		// 以普通模式运行
 		bilicoin.RunningMode = bilicoin.Simple
-		bilicoin.AppInfo(GitHash, buildTime, goVersion, ReleaseVersion)
+		AppInfo(GitHash, buildTime, goVersion, ReleaseVersion, "normal")
 		bilicoin.CronTaskLoad()
 		select {}
 	} else if opts.API {
 		// 以服务模式运行
 		bilicoin.RunningMode = bilicoin.Api
-		bilicoin.AppInfo(GitHash, buildTime, goVersion, ReleaseVersion)
+		AppInfo(GitHash, buildTime, goVersion, ReleaseVersion, "server")
 		bilicoin.BCApplication()
 
 	} else {
@@ -184,4 +181,19 @@ func release() {
 		showHelp()
 		return
 	}
+}
+
+func AppInfo(gitHash, buildTime, goVersion string, version string, mode string) {
+	Log.Blue("  ________  ___  ___       ___  ________  ________  ___  ________")
+	Log.Blue(" |\\   __  \\|\\  \\|\\  \\     |\\  \\|\\   ____\\|\\   __  \\|\\  \\|\\   ___  \\         BILICOIN #UNOFFICIAL# " + gitHash[:7] + "..." + gitHash[33:])
+	Log.Blue(" \\ \\  \\|\\ /\\ \\  \\ \\  \\    \\ \\  \\ \\  \\___|\\ \\  \\|\\  \\ \\  \\ \\  \\\\ \\  \\        -... .. .-.. .. -.-. --- .. -. " + version)
+	Log.Blue("  \\ \\   __  \\ \\  \\ \\  \\    \\ \\  \\ \\  \\    \\ \\  \\\\\\  \\ \\  \\ \\  \\\\ \\  \\       Running mode: " + mode)
+	if mode == "server" {
+		Log.Blue("   \\ \\  \\|\\  \\ \\  \\ \\  \\____\\ \\  \\ \\  \\____\\ \\  \\\\\\  \\ \\  \\ \\  \\\\ \\  \\      Port: " + bilicoin.GetConfig(false).APIAddr[1:])
+	} else {
+		Log.Blue("   \\ \\  \\|\\  \\ \\  \\ \\  \\____\\ \\  \\ \\  \\____\\ \\  \\\\\\  \\ \\  \\ \\  \\\\ \\  \\      Port: UNSUPPORTED")
+	}
+	Log.Blue("    \\ \\_______\\ \\__\\ \\_______\\ \\__\\ \\_______\\ \\_______\\ \\__\\ \\__\\\\ \\__\\     PID: " + strconv.Itoa(os.Getpid()))
+	Log.Blue("     \\|_______|\\|__|\\|_______|\\|__|\\|_______|\\|_______|\\|__|\\|__| \\|__|     built on " + buildTime)
+	Log.Blue("")
 }

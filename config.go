@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	. "github.com/r3inbowari/zlog"
 	"github.com/sirupsen/logrus"
 	"os"
 	"regexp"
@@ -29,7 +30,7 @@ var configPath = "bili.json"
 func GetConfig(imm bool) *LocalConfig {
 	if config.CacheTime.Before(time.Now()) || imm {
 		if err := LoadConfig(configPath, config); err != nil {
-			Fatal("loading file failed")
+			Log.Fatal("loading file failed")
 			return nil
 		}
 		config.CacheTime = time.Now().Add(time.Second * 60)
@@ -37,24 +38,22 @@ func GetConfig(imm bool) *LocalConfig {
 	return config
 }
 
-/**
- * save cnf/conf.json
- */
+// SetConfig set
 func (lc *LocalConfig) SetConfig() error {
 	fp, err := os.Create(configPath)
 	if err != nil {
-		Fatal("loading file failed", logrus.Fields{"err": err})
+		Log.WithFields(logrus.Fields{"err": err}).Fatal("loading file failed")
 	}
 	defer fp.Close()
 	data, err := json.Marshal(lc)
 	if err != nil {
-		Fatal("marshal file failed", logrus.Fields{"err": err})
+		Log.WithFields(logrus.Fields{"err": err}).Fatal("marshal file failed")
 	}
 	n, err := fp.Write(data)
 	if err != nil {
-		Fatal("write file failed", logrus.Fields{"err": err})
+		Log.WithFields(logrus.Fields{"err": err}).Fatal("write file failed")
 	}
-	Info("[FILE] Update user configuration", logrus.Fields{"size": n})
+	Log.WithFields(logrus.Fields{"size": n}).Info("[FILE] Update user configuration")
 	return nil
 }
 
@@ -68,18 +67,18 @@ const configFileSizeLimit = 10 << 20
 func LoadConfig(path string, dist interface{}) error {
 	configFile, err := os.Open(path)
 	if err != nil {
-		Fatal("Failed to open config file.", logrus.Fields{"path": path, "err": err})
+		Log.WithFields(logrus.Fields{"path": path, "err": err}).Fatal("Failed to open config file.")
 		return err
 	}
 
 	fi, _ := configFile.Stat()
 	if size := fi.Size(); size > (configFileSizeLimit) {
-		Fatal("Config file size exceeds reasonable limited", logrus.Fields{"path": path, "size": size})
+		Log.WithFields(logrus.Fields{"path": path, "size": size}).Fatal("Config file size exceeds reasonable limited")
 		return errors.New("limited")
 	}
 
 	if fi.Size() == 0 {
-		Fatal("Config file is empty, skipping", logrus.Fields{"path": path, "size": 0})
+		Log.WithFields(logrus.Fields{"path": path, "size": 0}).Fatal("Config file is empty, skipping")
 		return errors.New("empty")
 	}
 
@@ -87,7 +86,7 @@ func LoadConfig(path string, dist interface{}) error {
 	_, err = configFile.Read(buffer)
 	buffer, err = StripComments(buffer)
 	if err != nil {
-		Fatal("Failed to strip comments from json", logrus.Fields{"err": err})
+		Log.WithFields(logrus.Fields{"err": err}).Fatal("Failed to strip comments from json")
 		return err
 	}
 
@@ -95,7 +94,7 @@ func LoadConfig(path string, dist interface{}) error {
 
 	err = json.Unmarshal(buffer, &dist)
 	if err != nil {
-		Fatal("Failed unmarshalling json", logrus.Fields{"err": err})
+		Log.WithFields(logrus.Fields{"err": err}).Fatal("Failed unmarshalling json")
 		return err
 	}
 	return nil

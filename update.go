@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	. "github.com/r3inbowari/zlog"
 	"github.com/robfig/cron"
 	"github.com/sirupsen/logrus"
 	"io"
@@ -64,29 +65,29 @@ func DigestVerify(path string, digestStr string) bool {
 	}
 	file, err := os.Open(path)
 	if err != nil {
-		Info("[UP] file not exist")
+		Log.Info("[UP] file not exist")
 		return false
 	}
 	md5f := md5.New()
 	_, err = io.Copy(md5f, file)
 	if err != nil {
-		Info("[UP] file open error")
+		Log.Info("[UP] file open error")
 		return false
 	}
 
 	ok := digestStr == hex.EncodeToString(md5f.Sum([]byte("")))
 	if ok {
-		Info("[UP] file digest match", logrus.Fields{"digest": digestStr, "file": hex.EncodeToString(md5f.Sum([]byte("")))})
+		Log.WithFields(logrus.Fields{"digest": digestStr, "file": hex.EncodeToString(md5f.Sum([]byte("")))}).Info("[UP] file digest match")
 	} else {
-		Info("[UP] file digest mismatch", logrus.Fields{"digest": digestStr, "file": hex.EncodeToString(md5f.Sum([]byte("")))})
+		Log.WithFields(logrus.Fields{"digest": digestStr, "file": hex.EncodeToString(md5f.Sum([]byte("")))}).Info("[UP] file digest mismatch")
 	}
 	return ok
 }
 
 func CheckAndUpdateAndReload() {
-	Warn("[UP] Checking for updates")
+	Log.Warn("[UP] Checking for updates")
 	defer func() {
-		Info("[UP] update check completed")
+		Log.Info("[UP] update check completed")
 	}()
 
 	systemType := runtime.GOOS
@@ -111,7 +112,7 @@ func CheckAndUpdateAndReload() {
 	}
 
 	// reload
-	Info("[UP] reloading", logrus.Fields{"os": runtime.GOOS, "arch": runtime.GOARCH})
+	Log.WithFields(logrus.Fields{"os": runtime.GOOS, "arch": runtime.GOARCH}).Info("[UP] reloading")
 	if systemType == "linux" || systemType == "darwin" {
 		Release()
 		time.Sleep(time.Second * 3)
@@ -135,18 +136,18 @@ func DownloadExec(name, version string) error {
 		dUrl += ".exe"
 		name += ".exe"
 	}
-	Info(dUrl)
+	Log.Info(dUrl)
 
 	var bar *ProgressBar
 
 	err := Download(dUrl, name, func(fileLength int64) {
-		Info("[UP] downloading... collected file size", logrus.Fields{"size": fileLength})
+		Log.WithFields(logrus.Fields{"size": fileLength}).Info("[UP] downloading... collected file size")
 		bar = NewProgressBar(fileLength)
 	}, func(length, downLen int64) {
 		bar.Play(downLen)
 	})
 	if err != nil {
-		Warn("[UP] download failed...")
+		Log.Warn("[UP] download failed...")
 		return err
 	}
 	bar.Finish()
@@ -234,11 +235,11 @@ func CheckUpdate() (bool, string, string) {
 		return false, "", ""
 	}
 
-	Info("[UP] Current version", logrus.Fields{"major": version.Major, "minor": version.Minor, "patch": version.Patch})
+	Log.WithFields(logrus.Fields{"major": version.Major, "minor": version.Minor, "patch": version.Patch}).Info("[UP] Current version")
 	value := defs.Major<<24 + defs.Minor<<12 + defs.Patch<<0
 	now := version.Major<<24 + version.Minor<<12 + version.Patch<<0
 	if now < int64(value) {
-		Info("[UP] Found new version", logrus.Fields{"major": defs.Major, "minor": defs.Minor, "patch": defs.Patch})
+		Log.WithFields(logrus.Fields{"major": defs.Major, "minor": defs.Minor, "patch": defs.Patch}).Info("[UP] Found new version")
 		for k, v := range defs.Types {
 			if v == runtime.GOOS+"_"+runtime.GOARCH {
 				return true, defs.Digests[k], "v" + strconv.FormatInt(int64(defs.Major), 10) + "." + strconv.FormatInt(int64(defs.Minor), 10) + "." + strconv.FormatInt(int64(defs.Patch), 10)
@@ -248,8 +249,8 @@ func CheckUpdate() (bool, string, string) {
 	return false, "", ""
 }
 
-func SoftwareUpdate() {
-	if BuildMode == "REL" {
+func SoftwareUpdate(mode string) {
+	if mode == "REL" {
 		CheckAndUpdateAndReload()
 		cm := cron.New()
 		spec := "0 0 12 * * ?"
