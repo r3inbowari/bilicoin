@@ -2,6 +2,7 @@ package bilicoin
 
 import (
 	"context"
+	"crypto/tls"
 	"github.com/gorilla/mux"
 	. "github.com/r3inbowari/zlog"
 	"github.com/robfig/cron"
@@ -9,6 +10,7 @@ import (
 	"github.com/wuwenbao/gcors"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -42,8 +44,26 @@ func BCApplication() {
 		Addr:    GetConfig(false).APIAddr,
 		Handler: cors,
 	}
-	err := BiliServer.ListenAndServe()
+	//err := BiliServer.ListenAndServe()
 	//err := http.ListenAndServe(GetConfig(false).APIAddr, cors)
+	var err error
+	if GetConfig(false).CaCert != "" && GetConfig(false).CaKey != "" {
+		path, _ := os.Executable()
+		dir := filepath.Dir(path)
+		certPath := dir + "/" + GetConfig(false).CaCert
+		keyPath := dir + "/" + GetConfig(false).CaKey
+		_, err := tls.LoadX509KeyPair(certPath, keyPath)
+		if err != nil {
+			Log.WithField("err", err.Error()).Error("[BSC] please check your cert path whether is right")
+			time.Sleep(time.Second * 5)
+			os.Exit(1009)
+		}
+		Log.Info("[BSC] tls enabled")
+		err = BiliServer.ListenAndServeTLS(certPath, keyPath)
+	} else {
+		err = BiliServer.ListenAndServe()
+	}
+
 	if strings.HasSuffix(err.Error(), "normally permitted.") || strings.Index(err.Error(), "bind") != -1 {
 		Log.WithFields(logrus.Fields{"err": err.Error()}).Fatal("[BCS] Only one usage of each socket address is normally permitted.")
 		Log.Info("[BCS] EXIT 1002")

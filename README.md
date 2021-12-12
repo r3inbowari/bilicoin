@@ -13,11 +13,11 @@
 3. 不影响手动投币  
    程序会在每天23点50分（默认）左右自动检查当天是否完成 50 经验任务并补全  
    假设已投2个币，那么程序会再投3个
-4. 支持[方糖](http://sc.ftqq.com/ "ftqq")进行微信通知
+4. 支持[方糖](https://sct.ftqq.com/ "ftqq")进行微信通知
 5. 支持 `QRCode` 登录，无需手动粘贴 `Cookie`
 6. 支持多用户批量处理
 7. 支持服务模式
-8. [Demo 查看](http://120.77.33.188:9090/version "Demo") [QR Demo](http://120.77.33.188:3000/bilicoin/)
+8. [Demo 查看](https://120.77.33.188:9090/version "Demo") [QR Demo](https://120.77.33.188/bilicoin/)
 9. 支持自动更新
 10. 银瓜子转硬币（需要手动开启 `sw_convert_coin` 改为 `true`）
 11. 有空就更新

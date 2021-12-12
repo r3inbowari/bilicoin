@@ -13,3 +13,6 @@ bilicoin.exe
 /install.bat
 
 bilicoin_*
+
+*.crt
+*.key

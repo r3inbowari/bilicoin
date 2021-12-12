@@ -20,6 +20,8 @@ type LocalConfig struct {
 	CacheTime   time.Time  `json:"-"`         // 缓存时间
 	LoggerLevel *string    `json:"log_level"` // 日志等级
 	BiU         []BiliUser `json:"biu"`       // 用户集合
+	CaKey       string     `json:"ca_key"`    // CA 密钥
+	CaCert      string     `json:"ca_crt"`    // CA 证书
 }
 
 var config = new(LocalConfig)
