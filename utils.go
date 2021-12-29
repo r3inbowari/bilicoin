@@ -1,9 +1,7 @@
 package bilicoin
 
 import (
-	"encoding/json"
 	"errors"
-	"fmt"
 	qrcodeTerminal "github.com/Baozisoftware/qrcode-terminal-go"
 	. "github.com/r3inbowari/zlog"
 	"github.com/robertkrimen/otto"
@@ -26,7 +24,7 @@ var add int64 = 8728348608
 var table = "fZodR9XQDSUm21yCkr6zBqiveYah8bt4xsWpHnJE7jL5VG3guMTKNPAwcF"
 var s = []int64{11, 10, 3, 8, 4, 6, 2, 9, 5, 7}
 
-// bv2av
+// BVCovertDec bv2av
 func BVCovertDec(bv string) string {
 	var tr = make(map[byte]int)
 	for i := 1; i < 58; i++ {
@@ -42,7 +40,7 @@ func BVCovertDec(bv string) string {
 	return strconv.FormatInt(retAV, 10)
 }
 
-// av2bv
+// BVCovertEnc av2bv
 func BVCovertEnc(av string) string {
 	var r = []string{"B", "V", "1", "", "", "4", "", "1", "", "7", "", ""}
 	x, _ := strconv.Atoi(av)
@@ -67,7 +65,7 @@ func _buvidGenerate() (string, error) {
 	return "", errors.New("nil buvid response")
 }
 
-// 鬼畜区 BVS
+// GetGuichuBVs 鬼畜区 BVS
 func GetGuichuBVs() []string {
 	res, _ := GET("https://api.bilibili.com/x/web-interface/ranking/region?rid=119&day=3&original=0", nil)
 	result, _ := ioutil.ReadAll(res.Body)
@@ -83,7 +81,7 @@ func _uuidGenerate() (string, error) {
 	return uuid.String(), err
 }
 
-// QRCode 打印
+// QRCPrint 打印
 func QRCPrint(content string) {
 	obj := qrcodeTerminal.New2(qrcodeTerminal.ConsoleColors.BrightBlue, qrcodeTerminal.ConsoleColors.BrightGreen, qrcodeTerminal.QRCodeRecoveryLevels.Low)
 	obj.Get(content).Print()
@@ -139,6 +137,8 @@ func InitConfig() {
 		config.LoggerLevel = &l
 		config.BiU = []BiliUser{}
 		config.APIAddr = ":9090"
+		config.CaKey = ""
+		config.CaCert = ""
 		_ = config.SetConfig()
 	}
 }
@@ -206,27 +206,6 @@ func Post(url string, interceptor func(reqPoint *http.Request)) (*http.Response,
 func Random(max int) time.Duration {
 	rand.Seed(time.Now().UnixNano())
 	return time.Duration(rand.Intn(max)) * time.Second
-}
-
-type RequestResult struct {
-	Total   int         `json:"total"`
-	Data    interface{} `json:"data"`
-	Code    int         `json:"code"`
-	Message string      `json:"msg"`
-}
-
-func ResponseCommon(w http.ResponseWriter, data interface{}, msg string, total int, tag int, code int) {
-	var rq RequestResult
-	rq.Data = data
-	rq.Total = total
-	rq.Code = code
-	rq.Message = msg
-	jsonStr, err := json.Marshal(rq)
-	if err != nil {
-		log.Fatalf("%v\n", err)
-	}
-	w.WriteHeader(tag)
-	_, _ = fmt.Fprintf(w, string(jsonStr))
 }
 
 func CreateUUID() string {

@@ -4,6 +4,7 @@ import (
 	"bilicoin"
 	"github.com/jessevdk/go-flags"
 	. "github.com/r3inbowari/zlog"
+	"github.com/r3inbowari/zupdate"
 	"github.com/robfig/cron"
 	"github.com/sirupsen/logrus"
 	"os"
@@ -43,10 +44,10 @@ Options:
 }
 
 var (
-	GitHash        string
-	buildTime      string
-	goVersion      string
-	ReleaseVersion string
+	GitHash        = "cb0dc838e04e841f193f383e06e9d25a534c5809"
+	buildTime      = "Thu Oct 01 00:00:00 1970 +0800"
+	goVersion      = runtime.Version()
+	ReleaseVersion = "ver[DEV]"
 	Major          string
 	Minor          string
 	Patch          string
@@ -56,33 +57,27 @@ var Mode = "DEV"
 
 func main() {
 	InitGlobalLogger()
-
-	if Mode == "DEV" {
-		buildTime = "Thu Oct 01 00:00:00 1970 +0800"
-		GitHash = "cb0dc838e04e841f193f383e06e9d25a534c5809"
-		goVersion = runtime.Version()
-		ReleaseVersion = "ver[DEV]"
-	}
+	Log.SetScreen(true)
 
 	bilicoin.InitBili(Mode, ReleaseVersion, GitHash, Major, Minor, Patch)
 
-	bilicoin.SoftwareUpdate(Mode)
+	_ = zupdate.InitUpdater(zupdate.Option{
+		Name:        "hola",
+		Mode:        zupdate.DEV,
+		CheckSource: "http://120.77.33.188:3000/bilicoin/bin/test.json",
+		Callback:    nil,
+		EntryArgs:   []string{"-a"},
+		Log:         &Log.Logger,
+	}, nil)
+
+	//up.IncludeFile("5c74bf9c1face2dcb47bae100f2c664cdbd43400", zupdate.File{
+	//	Major: 1,
+	//	Minor: 0,
+	//	Patch: 1,
+	//})
+	//up.CheckAndUpdateWithGap()
 
 	release()
-	// example:
-	// add
-	// bilicoin.InitLogger()
-	// bilicoin.Info("Canvas Fingerprinting " + bilicoin.GetConfig().Finger)
-	// user, _ := bilicoin.CreateUser()
-	// user.GetQRCode()
-	// user.QRCodePrint()
-	// user.BiliScanAwait()
-	// del
-	// _ = bilicoin.DelUser("30722")
-	// drop
-	// biu, _ := bilicoin.GetUser("30722")
-	// biu.RandDrop()
-	// time.Sleep(time.Hour)
 }
 
 func release() {
@@ -194,6 +189,6 @@ func AppInfo(gitHash, buildTime, goVersion string, version string, mode string) 
 		Log.Blue("   \\ \\  \\|\\  \\ \\  \\ \\  \\____\\ \\  \\ \\  \\____\\ \\  \\\\\\  \\ \\  \\ \\  \\\\ \\  \\      Port: UNSUPPORTED")
 	}
 	Log.Blue("    \\ \\_______\\ \\__\\ \\_______\\ \\__\\ \\_______\\ \\_______\\ \\__\\ \\__\\\\ \\__\\     PID: " + strconv.Itoa(os.Getpid()))
-	Log.Blue("     \\|_______|\\|__|\\|_______|\\|__|\\|_______|\\|_______|\\|__|\\|__| \\|__|     built on " + buildTime)
+	Log.Blue("     \\|_______|\\|__|\\|_______|\\|__|\\|_______|\\|_______|\\|__|\\|__| \\|__|     built at " + buildTime)
 	Log.Blue("")
 }

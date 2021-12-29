@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/r3inbowari/common"
 	. "github.com/r3inbowari/zlog"
 	"github.com/robfig/cron"
 	"github.com/sirupsen/logrus"
@@ -609,13 +610,19 @@ func UserList() {
 	fmt.Println("")
 }
 
+var BuildMode common.Mode
+
 // InitBili bilicoin初始化
 func InitBili(buildMode string, ver, hash string, major, minor, patch string) {
-	// BuildMode = buildMode
+	BuildMode = common.Modes[buildMode]
 	releaseVersion = ver
 	releaseTag = hash
 	version.Major, _ = strconv.ParseInt(major, 10, 64)
 	version.Minor, _ = strconv.ParseInt(minor, 10, 64)
 	version.Patch, _ = strconv.ParseInt(patch, 10, 64)
 	InitConfig()
+	if lp := GetConfig(false).LoggerLevel; lp != nil {
+		parseLevel, _ := logrus.ParseLevel(*lp)
+		Log.SetLevel(parseLevel)
+	}
 }

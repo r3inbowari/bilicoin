@@ -1,91 +1,35 @@
 package bilicoin
 
 import (
-	"context"
-	"crypto/tls"
 	"github.com/gorilla/mux"
 	. "github.com/r3inbowari/zlog"
+	"github.com/r3inbowari/zserver"
 	"github.com/robfig/cron"
 	"github.com/sirupsen/logrus"
-	"github.com/wuwenbao/gcors"
 	"net/http"
-	"os"
-	"path/filepath"
-	"strings"
 	"sync"
 	"time"
 )
 
-var BiliServer *http.Server
-
 func BCApplication() {
-
 	Log.Info("[BCS] BILICOIN api Mode running")
 	reset()
-	Log.Info("[BCS] Listened on " + GetConfig(false).APIAddr)
-	r := mux.NewRouter()
 
-	r.HandleFunc("/{uid}/ft", HandleFT)
-	r.HandleFunc("/{uid}/cron", HandleCron)
-	r.HandleFunc("/version", HandleVersion)
-	r.HandleFunc("/users", HandleUsers)
-	r.HandleFunc("/user", HandleUserAdd).Methods("POST")
-	r.HandleFunc("/user", HandleUserDel).Methods("DELETE")
+	d := zserver.DefaultServer(zserver.Options{
+		Log:    &Log.Logger,
+		Addr:   GetConfig(false).APIAddr,
+		Mode:   BuildMode,
+		CaCert: GetConfig(false).CaKey,
+		CaKey:  GetConfig(false).CaKey,
+	})
 
-	// allow CORS
-	cors := gcors.New(
-		r,
-		gcors.WithOrigin("*"),
-		gcors.WithMethods("POST, GET, PUT, DELETE, OPTIONS"),
-		gcors.WithHeaders("Authorization"),
-	)
-
-	BiliServer = &http.Server{
-		Addr:    GetConfig(false).APIAddr,
-		Handler: cors,
-	}
-	//err := BiliServer.ListenAndServe()
-	//err := http.ListenAndServe(GetConfig(false).APIAddr, cors)
-	var err error
-	if GetConfig(false).CaCert != "" && GetConfig(false).CaKey != "" {
-		path, _ := os.Executable()
-		dir := filepath.Dir(path)
-		certPath := dir + "/" + GetConfig(false).CaCert
-		keyPath := dir + "/" + GetConfig(false).CaKey
-		_, err := tls.LoadX509KeyPair(certPath, keyPath)
-		if err != nil {
-			Log.WithField("err", err.Error()).Error("[BSC] please check your cert path whether is right")
-			time.Sleep(time.Second * 5)
-			os.Exit(1009)
-		}
-		Log.Info("[BSC] tls enabled")
-		err = BiliServer.ListenAndServeTLS(certPath, keyPath)
-	} else {
-		err = BiliServer.ListenAndServe()
-	}
-
-	if strings.HasSuffix(err.Error(), "normally permitted.") || strings.Index(err.Error(), "bind") != -1 {
-		Log.WithFields(logrus.Fields{"err": err.Error()}).Fatal("[BCS] Only one usage of each socket address is normally permitted.")
-		Log.Info("[BCS] EXIT 1002")
-		os.Exit(1002)
-	}
-
-	// goroutine block here not need sleep
-	Log.WithFields(logrus.Fields{"err": err.Error()}).Info("[BCS] Service will be terminated soon")
-	time.Sleep(time.Second * 10)
-}
-
-func Shutdown(ctx context.Context) {
-	if BiliServer != nil {
-		Log.Info("[BSC] releasing server now...")
-		err := BiliServer.Shutdown(ctx)
-		if err != nil {
-			Log.Fatal("[BSC] Shutdown failed")
-			Log.Info("[BCS] EXIT 1002")
-			os.Exit(1011)
-		}
-		Log.Info("[BSC] release completed")
-	}
+	d.Map("/{uid}/ft", HandleFT)
+	d.Map("/{uid}/cron", HandleCron)
+	d.Map("/version", HandleVersion)
+	d.Map("/users", HandleUsers)
+	d.Map("/user", HandleUserAdd, http.MethodPost)
+	d.Map("/user", HandleUserDel, http.MethodGet)
+	d.Start()
 }
 
 type FilterBiliUser struct {
@@ -116,7 +60,7 @@ func HandleFT(w http.ResponseWriter, r *http.Request) {
 		biu.InfoUpdate()
 		Log.WithFields(logrus.Fields{"UID": uid, "Key": key}).Info("[BCS] FTQQ secret key save completed")
 	}
-	ResponseCommon(w, "try succeed", "ok", 1, http.StatusOK, 0)
+	zserver.ResponseCommon(w, "try succeed", "ok", 1, http.StatusOK, 0)
 }
 
 func HandleCron(w http.ResponseWriter, r *http.Request) {
@@ -127,7 +71,7 @@ func HandleCron(w http.ResponseWriter, r *http.Request) {
 
 	if biu, ok := GetUser(uid); ok == nil && biu != nil {
 		if _, err := cron.Parse(cronStr); err != nil {
-			ResponseCommon(w, "[BCS] incorrect cron spec, please check and try again", "ok", 1, http.StatusOK, 0)
+			zserver.ResponseCommon(w, "[BCS] incorrect cron spec, please check and try again", "ok", 1, http.StatusOK, 0)
 			Log.WithFields(logrus.Fields{"UID": uid, "Cron": cronStr}).Info("[BCS] incorrect cron spec, please check and try again")
 			return
 		}
@@ -136,11 +80,11 @@ func HandleCron(w http.ResponseWriter, r *http.Request) {
 		Log.WithFields(logrus.Fields{"UID": uid, "Cron": cronStr}).Info("[BCS] Cron save completed by web")
 	}
 	reset()
-	ResponseCommon(w, "try succeed", "ok", 1, http.StatusOK, 0)
+	zserver.ResponseCommon(w, "try succeed", "ok", 1, http.StatusOK, 0)
 }
 
 func HandleVersion(w http.ResponseWriter, r *http.Request) {
-	ResponseCommon(w, releaseVersion+" "+releaseTag, "ok", 1, http.StatusOK, 0)
+	zserver.ResponseCommon(w, releaseVersion+" "+releaseTag, "ok", 1, http.StatusOK, 0)
 }
 
 func HandleUsers(w http.ResponseWriter, r *http.Request) {
@@ -155,7 +99,7 @@ func HandleUsers(w http.ResponseWriter, r *http.Request) {
 			DropCount: v.DropCoinCount,
 		})
 	}
-	ResponseCommon(w, ret, "ok", len(users), http.StatusOK, 0)
+	zserver.ResponseCommon(w, ret, "ok", len(users), http.StatusOK, 0)
 }
 
 var loginMap sync.Map
@@ -171,12 +115,12 @@ func HandleUserAdd(w http.ResponseWriter, r *http.Request) {
 		time.AfterFunc(time.Minute*3, func() {
 			loginMap.Delete(user.OAuth.OAuthKey)
 		})
-		ResponseCommon(w, user.OAuth.OAuthKey, "ok", 1, http.StatusOK, 0)
+		zserver.ResponseCommon(w, user.OAuth.OAuthKey, "ok", 1, http.StatusOK, 0)
 	} else {
 		if user, ok := loginMap.Load(r.Form.Get("oauth")); ok {
 			biliUser := user.(*BiliUser)
 			biliUser.LoginCallback(func(isLogin bool) {
-				ResponseCommon(w, isLogin, "ok", 1, http.StatusOK, 0)
+				zserver.ResponseCommon(w, isLogin, "ok", 1, http.StatusOK, 0)
 				if isLogin {
 					// reset
 					reset()
@@ -194,7 +138,7 @@ func HandleUserDel(w http.ResponseWriter, r *http.Request) {
 	Log.WithFields(logrus.Fields{"UID": uid}).Info("[BCS] Try to delete user")
 	_ = DelUser(uid)
 	reset()
-	ResponseCommon(w, "try succeed", "ok", 1, http.StatusOK, 0)
+	zserver.ResponseCommon(w, "try succeed", "ok", 1, http.StatusOK, 0)
 }
 
 func reset() {
