@@ -19,7 +19,7 @@ func BCApplication() {
 		Log:    &Log.Logger,
 		Addr:   GetConfig(false).APIAddr,
 		Mode:   BuildMode,
-		CaCert: GetConfig(false).CaKey,
+		CaCert: GetConfig(false).CaCert,
 		CaKey:  GetConfig(false).CaKey,
 	})
 
