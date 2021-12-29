@@ -11,9 +11,7 @@ import (
 	"time"
 )
 
-/**
- * local config struct
- */
+// LocalConfig config
 type LocalConfig struct {
 	Finger      string     `json:"finger"`    // canvas指纹
 	APIAddr     string     `json:"api_addr"`  // API服务ADDR
@@ -102,9 +100,7 @@ func LoadConfig(path string, dist interface{}) error {
 	return nil
 }
 
-/**
- * 注释清除
- */
+// StripComments clean comments
 func StripComments(data []byte) ([]byte, error) {
 	data = bytes.Replace(data, []byte("\r"), []byte(""), 0)
 	lines := bytes.Split(data, []byte("\n"))

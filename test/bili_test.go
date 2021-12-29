@@ -77,3 +77,20 @@ func TestCopy(t *testing.T) {
 	a = append(a[:i], a[i+1:]...)
 	println("!1111")
 }
+
+func MainT() {
+	// example:
+	// add
+	// bilicoin.InitLogger()
+	// bilicoin.Info("Canvas Fingerprinting " + bilicoin.GetConfig().Finger)
+	// user, _ := bilicoin.CreateUser()
+	// user.GetQRCode()
+	// user.QRCodePrint()
+	// user.BiliScanAwait()
+	// del
+	// _ = bilicoin.DelUser("30722")
+	// drop
+	// biu, _ := bilicoin.GetUser("30722")
+	// biu.RandDrop()
+	// time.Sleep(time.Hour)
+}

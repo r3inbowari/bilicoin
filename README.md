@@ -17,9 +17,11 @@
 5. 支持 `QRCode` 登录，无需手动粘贴 `Cookie`
 6. 支持多用户批量处理
 7. 支持服务模式
-8. [Demo 查看](https://120.77.33.188:9090/version "Demo") [QR Demo](https://120.77.33.188/bilicoin/)
-9. 支持自动更新
-10. 银瓜子转硬币（需要手动开启 `sw_convert_coin` 改为 `true`）
+8. [demo 查看](https://120.77.33.188:9090/version "Demo")  
+   [QR demo https](https://120.77.33.188/bilicoin/)  
+   [QR demo http](http://120.77.33.188/bilicoin/)  
+9. 支持自动更新  
+10. 银瓜子转硬币（需要手动开启 `sw_convert_coin` 改为 `true`）  
 11. 有空就更新
 
 ## 获取工具
@@ -128,7 +130,7 @@
 
     ```
     // build image
-    docker build -t r3inbowari/bilicoin:v1.0.11 .
+    docker build -t r3inbowari/bilicoin:v1.0.12 .
 
     // prune dangling image: builder
     docker image prune --filter label=stage=builder
@@ -137,7 +139,7 @@
 2. 如果不想构建的话可以直接拉取已经构建好的镜像 [linux/amd64](https://hub.docker.com/repository/docker/r3inbowari/bilicoin "DockerHub Page")
 
     ```
-    docker pull r3inbowari/bilicoin:v1.0.11
+    docker pull r3inbowari/bilicoin:v1.0.12
     ```
 
 3. 直接运行即可
@@ -148,7 +150,16 @@
     --name bilicoin \
     -p 9090:9090 \
     -itd --restart=always \
-    r3inbowari/bilicoin:v1.0.11
+    r3inbowari/bilicoin:v1.0.12
+   
+    // 挂载外部config文件
+    docker run \
+    --name bilicoin \
+    -p 9090:9090 \
+    -itd --restart=always \
+    -v $PWD/bili.json:/app/build/bili.json \
+    r3inbowari/bilicoin:v1.0.12
+   
     ```
 
 4. 浏览器打开地址验证是否开启
