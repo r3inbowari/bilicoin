@@ -53,7 +53,7 @@ func (lc *LocalConfig) SetConfig() error {
 	if err != nil {
 		Log.WithFields(logrus.Fields{"err": err}).Fatal("write file failed")
 	}
-	Log.WithFields(logrus.Fields{"size": n}).Info("[FILE] Update user configuration")
+	Log.WithFields(logrus.Fields{"size": n}).Info("[FILE] update user configuration")
 	return nil
 }
 
@@ -67,7 +67,7 @@ const configFileSizeLimit = 10 << 20
 func LoadConfig(path string, dist interface{}) error {
 	configFile, err := os.Open(path)
 	if err != nil {
-		Log.WithFields(logrus.Fields{"path": path, "err": err}).Fatal("Failed to open config file.")
+		Log.WithFields(logrus.Fields{"path": path, "err": err}).Fatal("failed to open config file.")
 		return err
 	}
 

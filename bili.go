@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -48,7 +49,7 @@ type BiliUser struct {
 	FT            string     `json:"ft"`                        // Config -> 方糖[可选]
 	FTSwitch      bool       `json:"ft_switch"`                 // Config -> 方糖开关
 	ConvertCoin   bool       `json:"sw_convert_coin"`           // Config -> 银瓜子兑换硬币
-	Job           *cron.Cron
+	Tasks         []string   `json:"tasks"`                     // Config -> 任务列表
 }
 
 type ABi struct {
@@ -74,7 +75,7 @@ type BiliInfo struct {
 	Data      BiliData `json:"data"`    // 数据
 	Message   string   `json:"message"` // 消息
 	Timestamp int64    `json:"ts"`      // ts
-	TTL       int      `json:"ttl"`     // 生存
+	TTL       int      `json:"ttl"`     // 跳数
 	Code      int      `json:"code"`    // 响应代码
 }
 
@@ -98,20 +99,34 @@ type CoinLog struct {
 var releaseVersion = "v1.0.0" // release tag
 var releaseTag = "b4ac8f4..6599638 @master"
 
-type Version struct {
-	Patch int64
-	Minor int64
-	Major int64
+// NormalAuthHeader bilibili标准头部
+func (biu *BiliUser) NormalAuthHeader(reqPoint *http.Request) {
+	cookie3 := &http.Cookie{Name: "sid", Value: biu.SID}
+	cookie1 := &http.Cookie{Name: "_uuid", Value: biu.UUID}
+	cookie2 := &http.Cookie{Name: "buvid3", Value: biu.BuVID}
+	cookie4 := &http.Cookie{Name: "finger", Value: GetConfig(false).Finger}
+	cookie0 := &http.Cookie{Name: "PVID", Value: "6"}
+	cookie8 := &http.Cookie{Name: "SESSDATA", Value: biu.SESSDATA}
+	cookie5 := &http.Cookie{Name: "DedeUserID", Value: biu.DedeUserID}
+	cookie6 := &http.Cookie{Name: "DedeUserID__ckMd5", Value: biu.DedeUserIDMD5}
+	cookie7 := &http.Cookie{Name: "bili_jct", Value: biu.BiliJCT}
+
+	reqPoint.AddCookie(cookie0)
+	reqPoint.AddCookie(cookie1)
+	reqPoint.AddCookie(cookie2)
+	reqPoint.AddCookie(cookie3)
+	reqPoint.AddCookie(cookie4)
+	reqPoint.AddCookie(cookie5)
+	reqPoint.AddCookie(cookie6)
+	reqPoint.AddCookie(cookie7)
+	reqPoint.AddCookie(cookie8)
+
+	reqPoint.Header.Add("accept", "application/json, text/plain, */*")
+	// reqPoint.Header.Add("accept-encoding", "deflate, br")
+	reqPoint.Header.Add("sec-fetch-dest", "empty")
+	reqPoint.Header.Add("sec-fetch-mode", "cors")
+	reqPoint.Header.Add("sec-fetch-site", "same-origin")
 }
-
-var version Version
-
-var RunningMode = ""
-
-const (
-	Simple = "simple"
-	Api    = "api"
-)
 
 // CreateUser 创建用户
 func CreateUser() (*BiliUser, error) {
@@ -204,8 +219,8 @@ func (biu *BiliUser) GetBiliLoginInfo(cron *cron.Cron) {
 			biu.SESSDATA = cookies[4].Value
 			biu.BiliJCT = cookies[6].Value
 			biu.Login = true
-			Log.WithFields(logrus.Fields{"UID": biu.DedeUserID}).Info("Login Succeed~")
-
+			Log.WithFields(logrus.Fields{"UID": biu.DedeUserID}).Info("login Succeed~")
+			biu.Tasks = []string{"drop-coin"}
 			biu.InfoUpdate()
 		} else {
 			if result.Message != "" {
@@ -296,7 +311,7 @@ func (biu *BiliUser) BiliScanAwait() {
 
 	for true {
 		if biu.DedeUserID != "" {
-			Log.Info("Login process will exit after 5 seconds")
+			Log.Info("login process will exit after 5 seconds")
 			time.Sleep(time.Second * 5)
 			os.Exit(0)
 		}
@@ -405,35 +420,6 @@ func (biu *BiliUser) GetBiliCoinLog() error {
 	return nil
 }
 
-// NormalAuthHeader bilibili标准头部
-func (biu *BiliUser) NormalAuthHeader(reqPoint *http.Request) {
-	cookie3 := &http.Cookie{Name: "sid", Value: biu.SID}
-	cookie1 := &http.Cookie{Name: "_uuid", Value: biu.UUID}
-	cookie2 := &http.Cookie{Name: "buvid3", Value: biu.BuVID}
-	cookie4 := &http.Cookie{Name: "finger", Value: GetConfig(false).Finger}
-	cookie0 := &http.Cookie{Name: "PVID", Value: "6"}
-	cookie8 := &http.Cookie{Name: "SESSDATA", Value: biu.SESSDATA}
-	cookie5 := &http.Cookie{Name: "DedeUserID", Value: biu.DedeUserID}
-	cookie6 := &http.Cookie{Name: "DedeUserID__ckMd5", Value: biu.DedeUserIDMD5}
-	cookie7 := &http.Cookie{Name: "bili_jct", Value: biu.BiliJCT}
-
-	reqPoint.AddCookie(cookie0)
-	reqPoint.AddCookie(cookie1)
-	reqPoint.AddCookie(cookie2)
-	reqPoint.AddCookie(cookie3)
-	reqPoint.AddCookie(cookie4)
-	reqPoint.AddCookie(cookie5)
-	reqPoint.AddCookie(cookie6)
-	reqPoint.AddCookie(cookie7)
-	reqPoint.AddCookie(cookie8)
-
-	reqPoint.Header.Add("accept", "application/json, text/plain, */*")
-	// reqPoint.Header.Add("accept-encoding", "deflate, br")
-	reqPoint.Header.Add("sec-fetch-dest", "empty")
-	reqPoint.Header.Add("sec-fetch-mode", "cors")
-	reqPoint.Header.Add("sec-fetch-site", "same-origin")
-}
-
 // DropCoin 打赏逻辑
 func (biu *BiliUser) DropCoin(bv string) {
 	// TODO fix: panic if error-bv inputted
@@ -454,11 +440,16 @@ func (biu *BiliUser) DropCoin(bv string) {
 	if res != nil && err == nil {
 		var msg BiliInfo
 		_ = json.NewDecoder(res.Body).Decode(&msg)
-		if msg.Message == "0" {
+		if msg.TTL > 0 {
+			// 预扣1币
 			biu.DropCoinCount++
+		}
+		if msg.Message == "0" {
 			Log.WithFields(logrus.Fields{"BVID": bv, "AVID": aid, "UID": biu.DedeUserID, "dropCount": biu.DropCoinCount}).Info("[TASK] Drop succeed")
 			biu.SendMessage2WeChat(biu.DedeUserID + "打赏" + bv + "成功")
 		} else if msg.Message == "超过投币上限啦~" {
+			// 投币失败，退回1
+			biu.DropCoinCount--
 			Log.WithFields(logrus.Fields{"BVID": bv, "AVID": aid, "UID": biu.DedeUserID, "dropCount": biu.DropCoinCount}).Info("[TASK] Drop limited")
 		}
 	}
@@ -483,108 +474,46 @@ func (biu *BiliUser) RandDrop() {
 	biu.DropCoin(bvs[randIndex])
 }
 
-var taskMap sync.Map
-
-// DropTaskStart 投币任务
-func (biu *BiliUser) DropTaskStart() {
-	c := cron.New()
-	uuid := CreateUUID()
-	taskMap.Store(uuid, c)
-	Log.WithFields(logrus.Fields{"UID": biu.DedeUserID, "Cron": biu.Cron, "TaskID": uuid}).Info("[CRON] Add task")
-	_ = c.AddFunc(biu.Cron, func() {
-		// TODO fix: loop drop may be happen...
-		_ = biu.GetBiliCoinLog()
-		_ = biu.GetBiliWallet()
-
-		// 使用银瓜子兑换硬币一枚
-		if biu.ConvertCoin && biu.Bi.Silver >= 700 {
-			biu.Silver2Coin()
-		}
-
-		for true {
-			if biu.DropCoinCount > 4 {
-				biu.InfoUpdate()
-				break
-			}
-			biu.RandDrop()
-			time.Sleep(Random(60))
-		}
-		Log.WithFields(logrus.Fields{"UID": biu.DedeUserID}).Info("[CRON] Task Completed")
-	})
-	c.Start()
-}
-
-// CronTaskLoad 注册所有投币任务
-func CronTaskLoad() {
-	// panic: if not biu in config file
-	// exit code 1001
-	bius := GetConfig(true).BiU
-	if len(bius) == 0 && RunningMode == Simple {
-		Log.Warn("[CRON] biu not found: please make sure that at least one user cookies exists in bili.json file")
-		Log.Warn("[CRON] tip: use '-n' option to create a new user cookies by bilibili-mobile-client QR Login")
-		Log.Info("[CRON] EXIT 1001")
-		time.Sleep(time.Second * 5)
-		os.Exit(1001)
-	}
-	if len(bius) == 0 {
-		Log.Info("[USER] Not found users")
-		return
-	}
-	for k, _ := range bius {
-		// 投币日志
-		err := bius[k].GetBiliCoinLog()
-		if err != nil {
-			// 当前账号获取日志失败，跳过此账号
-			// 过期、未知错误、服务不可达、解析错误
-			Log.WithFields(logrus.Fields{"err": err.Error(), "id": bius[k].DedeUserID}).Warn("user load error, can not get coin log")
-			continue
-		}
-		// 账号信息获取
-		err = bius[k].GetBiliWallet()
-		if err != nil {
-			// 当前账号获取用户信息失败，跳过此账号
-			// 过期、未知错误、服务不可达、解析错误
-			Log.WithFields(logrus.Fields{"err": err.Error(), "id": bius[k].DedeUserID}).Warn("user load error, can not get coin log")
-			continue
-		}
-		// 投币任务启动
-		bius[k].DropTaskStart()
-	}
-}
-
-// LoadUser 获取所有UID实体
-func LoadUser() []BiliUser {
+// LoadUsers 获取所有UID实体
+func LoadUsers() []BiliUser {
 	return GetConfig(false).BiU
 }
 
 // GetUser 尝试通过UID获取一个UID实体
 func GetUser(uid string) (*BiliUser, error) {
-	users := LoadUser()
-	for k, _ := range users {
-		if users[k].DedeUserID == uid {
-			users[k].GetBiliCoinLog()
-			return &users[k], nil
-		}
+	users := LoadUsers()
+
+	if userIndex := sort.Search(len(users), func(index int) bool { return users[index].DedeUserID == uid }); userIndex == len(users) {
+		return nil, errors.New("not found user")
+	} else {
+		return &users[userIndex], users[userIndex].GetBiliCoinLog()
 	}
-	return nil, errors.New("not found user")
 }
 
 // DelUser 尝试删除Config中一个UID配置实体
 func DelUser(uid string) error {
-	users := LoadUser()
-	for k, _ := range users {
-		if users[k].DedeUserID == uid {
-			users = append(users[:k], users[k+1:]...)
-			config.BiU = users
-			_ = config.SetConfig()
-		}
+	users := LoadUsers()
+
+	if userIndex := sort.Search(len(users), func(index int) bool { return users[index].DedeUserID == uid }); userIndex == len(users) {
+		return errors.New("not found user")
+	} else {
+		users = append(users[:userIndex], users[userIndex+1:]...)
+		config.BiU = users
+		return config.SetConfig()
 	}
-	return errors.New("not found user")
+}
+
+func searchBiliUser(users []BiliUser, uid string) *BiliUser {
+	if userIndex := sort.Search(len(users), func(index int) bool { return users[index].DedeUserID == uid }); userIndex == len(users) {
+		return nil
+	} else {
+		return &users[userIndex]
+	}
 }
 
 // GetAllUID 获取Config中所有已知UID的String
 func GetAllUID() []string {
-	users := LoadUser()
+	users := LoadUsers()
 	var retVal []string
 	for k, _ := range users {
 		retVal = append(retVal, users[k].DedeUserID)
@@ -593,19 +522,13 @@ func GetAllUID() []string {
 }
 
 func UserList() {
-	users := LoadUser()
+	users := LoadUsers()
 	fmt.Println("")
 	fmt.Println("total: " + strconv.Itoa(len(users)))
 	fmt.Println()
-	fmt.Println("| UID | Cron | FTQQ |")
+	fmt.Println("|      UID \t|         Cron     \t|      FTQQ\t|")
 	for _, v := range users {
-		print("| ")
-		print(v.DedeUserID)
-		print(" | ")
-		print(v.Cron)
-		print(" | ")
-		print(v.FTSwitch)
-		println(" | ")
+		fmt.Printf("| %s \t| %s \t| %s \t|\n", v.DedeUserID, v.Cron, strconv.FormatBool(v.FTSwitch))
 	}
 	fmt.Println("")
 }
@@ -613,16 +536,54 @@ func UserList() {
 var BuildMode common.Mode
 
 // InitBili bilicoin初始化
-func InitBili(buildMode string, ver, hash string, major, minor, patch string) {
+func InitBili(buildMode string, ver, hash string) {
 	BuildMode = common.Modes[buildMode]
 	releaseVersion = ver
 	releaseTag = hash
-	version.Major, _ = strconv.ParseInt(major, 10, 64)
-	version.Minor, _ = strconv.ParseInt(minor, 10, 64)
-	version.Patch, _ = strconv.ParseInt(patch, 10, 64)
 	InitConfig()
 	if lp := GetConfig(false).LoggerLevel; lp != nil {
 		parseLevel, _ := logrus.ParseLevel(*lp)
 		Log.SetLevel(parseLevel)
+	}
+}
+
+type Task func(user *BiliUser) error
+
+var cronTask sync.Map
+
+func BiliExecutor(user *BiliUser) {
+	for _, t := range user.Tasks {
+		task, ok := TaskMap[t]
+		if ok {
+
+			c := cron.New()
+			uuid := CreateUUID()
+			cronTask.Store(uuid, c)
+			Log.WithFields(logrus.Fields{"UID": user.DedeUserID, "Cron": user.Cron, "TaskID": uuid, "TaskName": t}).Info("[CRON] add task")
+			_ = c.AddFunc(user.Cron, func() {
+				err := task(user)
+				if err != nil {
+					Log.WithFields(logrus.Fields{"UID": user.DedeUserID, "TaskID": uuid}).Warn("[CRON] task failed")
+					return
+				}
+				Log.WithFields(logrus.Fields{"UID": user.DedeUserID}).Info("[CRON] task completed")
+			})
+			c.Start()
+
+		}
+	}
+}
+
+// CronTaskLoad 注册所有投币任务
+func CronTaskLoad() {
+	// warning: not found user
+	bius := GetConfig(true).BiU
+	if len(bius) == 0 {
+		Log.Warn("[USER] make sure that at least one user exists in bili.json")
+		Log.Warn("[USER] tip: use '-n' option to login by bilibili-mobile-client")
+		return
+	}
+	for i := range bius {
+		BiliExecutor(&bius[i])
 	}
 }
