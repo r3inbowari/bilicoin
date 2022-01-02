@@ -96,9 +96,10 @@
 
    ```
    ./bilicoin_linux_amd64 -u <用户ID> -c [Cron Spec]
+   // 注意：cron表达式的空格要用逗号替换
    // example: 
-   // 1. 修改cron
-   ./bilicoin_linux_amd64 -u 30772 -c 0 10 20 * * ?
+   // 1. 修改30772的cron为 0 10 20 * * ?
+   ./bilicoin_linux_amd64 -u 30772 -c 0,10,20,*,*,?
    ```
 
 ## 使用 Docker 构建
