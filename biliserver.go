@@ -12,7 +12,7 @@ import (
 )
 
 func BCApplication() {
-	Log.Info("[BCS] BILICOIN api Mode running")
+	Log.Info("[BCS] BiliCoin is running")
 	reset()
 
 	d := zserver.DefaultServer(zserver.Options{
@@ -88,7 +88,7 @@ func HandleVersion(w http.ResponseWriter, r *http.Request) {
 }
 
 func HandleUsers(w http.ResponseWriter, r *http.Request) {
-	users := LoadUser()
+	users := LoadUsers()
 	var ret []FilterBiliUser
 	for _, v := range users {
 		ret = append(ret, FilterBiliUser{
@@ -142,11 +142,10 @@ func HandleUserDel(w http.ResponseWriter, r *http.Request) {
 }
 
 func reset() {
-	Log.Warn("[BSC] Release task resource")
-	taskMap.Range(func(key, value interface{}) bool {
-		Log.WithFields(logrus.Fields{"TaskID": key.(string)}).Info("[BSC] Try to stop cron")
+	cronTask.Range(func(key, value interface{}) bool {
+		Log.WithFields(logrus.Fields{"TaskID": key.(string)}).Info("[BSC] release task")
 		value.(*cron.Cron).Stop()
-		taskMap.Delete(key)
+		cronTask.Delete(key)
 		return true
 	})
 	CronTaskLoad()

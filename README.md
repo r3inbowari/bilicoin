@@ -10,48 +10,30 @@
 
 1. 自动完成B站50经验每日任务，帮助快速升级
 2. 随机选取视频投币
-3. 不影响手动投币  
-   程序会在每天23点50分（默认）左右自动检查当天是否完成 50 经验任务并补全  
-   假设已投2个币，那么程序会再投3个
+3. 每天23点50分（默认）左右，假设已投2个币，那么程序会再投3个
 4. 支持[方糖](https://sct.ftqq.com/ "ftqq")进行微信通知
 5. 支持 `QRCode` 登录，无需手动粘贴 `Cookie`
-6. 支持多用户批量处理
-7. 支持服务模式
-8. [demo 查看](https://120.77.33.188:9090/version "Demo")  
+6. 支持多用户处理
+7. [demo 查看](https://120.77.33.188:9090/version "Demo")  
    [QR demo https](https://120.77.33.188/bilicoin/)  
    [QR demo http](http://120.77.33.188/bilicoin/)  
-9. 支持自动更新  
-10. 银瓜子转硬币（需要手动开启 `sw_convert_coin` 改为 `true`）  
-11. 有空就更新
+8. 银瓜子转硬币（需要手动在用户的 `Tasks` 数组中添加 `silver-2-coin`）  
+9. 有空就更新
 
 ## 获取工具
 
-项目从 [Release](https://github.com/r3inbowari/bilicoin/releases "Releases Download") 中下载 下载或自行编译  
-完整的项目包括以下两个文件: `bilicoin_os_arch`, `bili.json[自动生成]`
+项目从 [Release](https://github.com/r3inbowari/bilicoin/releases "Releases Download") 中下载或自行编译
 
 1. 编译方法
     ```
     git clone https://github.com/r3inbowari/bilicoin.git
     cd bilicoin
-    ./build.bat
+    ./build.bat or ./build.sh
     ```
 
-## 基本使用
+## 使用方法
 
-1. 命令行输入下面内容，会弹出 `QRCode` 使用B站手机客户端扫码添加用户
-    ```
-    ./bilicoin_linux_amd64 -n
-    ```
-    <img src="./dev/qrcode.png" style="height:300px" />
-
-2. 登录成功后使用命令行输入下面内容即可开启投币服务
-    ```
-    ./bilicoin_linux_amd64 -s
-    ```
-
-## 服务模式
-
-1. 命令行输入下面内容，进入服务模式
+1. 命令行输入下面内容，开始服务运行
 
     ```
     ./bilicoin_linux_amd64 -a
@@ -84,7 +66,7 @@
     GET /{id}/ft?key=方糖key&sw=开关
     ```
 
-## 其他命令
+## 其它 Command
 
 1. 查询当前配置文件中所有的 `UID`:
 
@@ -95,42 +77,39 @@
 2. 从配置文件中删除指定的 `UID`:
 
     ```
-    ./bilicoin_linux_amd64 [UID] -d
-    // example
+    ./bilicoin_linux_amd64 -d <用户ID>
+    // example: 
     // 1. 尝试删除 UID 为 30772 的登录信息
-    ./bilicoin_linux_amd64 30722 -d
+    ./bilicoin_linux_amd64 -d 30722
     ```
 
 3. 配置方糖微信通知[可选]
 
     ```
-    ./bilicoin_linux_amd64 -f [用户ID UID] [方糖 SecretKey]
+    ./bilicoin_linux_amd64 -u <用户ID> -f <方糖 SecretKey>
     // example: 
-    // 1. 添加方糖key
-    ./bilicoin_linux_amd64 -f 933330 SCUxxxxxTe034cxxxxx732b1xxxxx23f7exxxxxd05eaxxxxxxxxxx
-
-    // 2. 清除方糖key
-    ./bilicoin_linux_amd64 -f 933330
+    // 1. 尝试为用户添加方糖key
+    ./bilicoin_linux_amd64 -u 30772 -f 933330 SCUxxxxxTe034cxxxxx...
     ```
 
-4. 修改Cron表达式(默认是30 50 23 * * ?)
+4. 修改指定UID的Cron表达式(默认是30 50 23 * * ?)
 
    ```
-   ./bilicoin_linux_amd64 -c [用户ID UID] [Cron Spec]
+   ./bilicoin_linux_amd64 -u <用户ID> -c [Cron Spec]
    // example: 
    // 1. 修改cron
-   ./bilicoin_linux_amd64 -c 933330 0 10 20 * * ?
+   ./bilicoin_linux_amd64 -u 30772 -c 0 10 20 * * ?
    ```
 
 ## 使用 Docker 构建
 
-你也可以使用 `docker` 进行部署，通过使用api进行控制。
+你也可以使用 `docker` 进行部署，通过使用http请求进行控制。
 
 1. 构建镜像
 
     ```
     // build image
-    docker build -t r3inbowari/bilicoin:v1.0.12 .
+    docker build -t r3inbowari/bilicoin:v1.1.0 .
 
     // prune dangling image: builder
     docker image prune --filter label=stage=builder
@@ -139,7 +118,7 @@
 2. 如果不想构建的话可以直接拉取已经构建好的镜像 [linux/amd64](https://hub.docker.com/repository/docker/r3inbowari/bilicoin "DockerHub Page")
 
     ```
-    docker pull r3inbowari/bilicoin:v1.0.12
+    docker pull r3inbowari/bilicoin:v1.1.0
     ```
 
 3. 直接运行即可
@@ -150,7 +129,7 @@
     --name bilicoin \
     -p 9090:9090 \
     -itd --restart=always \
-    r3inbowari/bilicoin:v1.0.12
+    r3inbowari/bilicoin:v1.1.0
    
     // 挂载外部config文件
     docker run \
@@ -158,7 +137,7 @@
     -p 9090:9090 \
     -itd --restart=always \
     -v $PWD/bili.json:/app/build/bili.json \
-    r3inbowari/bilicoin:v1.0.12
+    r3inbowari/bilicoin:v1.1.0
    
     ```
 
