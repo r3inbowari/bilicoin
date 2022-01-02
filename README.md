@@ -136,7 +136,7 @@
     --name bilicoin \
     -p 9090:9090 \
     -itd --restart=always \
-    -v $PWD/bili.json:/app/build/bili.json \
+    -v $PWD/bili.json:/app/bili.json \
     r3inbowari/bilicoin:v1.1.0
    
     ```
