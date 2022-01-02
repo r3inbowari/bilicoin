@@ -119,16 +119,14 @@ func HandleUserAdd(w http.ResponseWriter, r *http.Request) {
 	} else {
 		if user, ok := loginMap.Load(r.Form.Get("oauth")); ok {
 			biliUser := user.(*BiliUser)
-			biliUser.LoginCallback(func(isLogin bool) {
-				zserver.ResponseCommon(w, isLogin, "ok", 1, http.StatusOK, 0)
-				if isLogin {
-					// reset
-					reset()
-				}
-			})
-			// ResponseCommon(w, oauth, "ok", 1, http.StatusOK, 0)
+			biliUser.GetBiliLoginInfo(nil)
+			if biliUser.Login {
+				zserver.ResponseCommon(w, biliUser.Login, "ok", 1, http.StatusOK, 0)
+				reset()
+			}
+		} else {
+			zserver.ResponseCommon(w, "non exist", "ok", 1, http.StatusOK, 0)
 		}
-		//TODO not exist key
 	}
 }
 

@@ -213,7 +213,9 @@ func (biu *BiliUser) GetBiliLoginInfo(cron *cron.Cron) {
 		_ = json.NewDecoder(res.Body).Decode(&result)
 		cookies := res.Cookies()
 		if len(cookies) == 8 {
-			cron.Stop()
+			if cron != nil {
+				cron.Stop()
+			}
 			biu.DedeUserID = cookies[0].Value
 			biu.DedeUserIDMD5 = cookies[2].Value
 			biu.SESSDATA = cookies[4].Value
@@ -226,56 +228,6 @@ func (biu *BiliUser) GetBiliLoginInfo(cron *cron.Cron) {
 			if result.Message != "" {
 				Log.Info(result.Message)
 			}
-		}
-	}
-}
-
-// LoginCallback 获取登录信息
-func (biu *BiliUser) LoginCallback(callback func(isLogin bool)) {
-	url := "https://passport.bilibili.com/qrcode/getLoginInfo"
-
-	data := "oauthKey=" + biu.OAuth.OAuthKey + "&gourl=" + "https%3A%2F%2Fwww.bilibili.com%2F"
-	res, err := Post2(url, func(reqPoint *http.Request) {
-
-		cookie1 := &http.Cookie{Name: "_uuid", Value: biu.UUID}
-		cookie2 := &http.Cookie{Name: "buvid3", Value: biu.BuVID}
-		cookie3 := &http.Cookie{Name: "sid", Value: biu.SID}
-		cookie4 := &http.Cookie{Name: "finger", Value: GetConfig(false).Finger}
-		cookie0 := &http.Cookie{Name: "PVID", Value: "4"}
-
-		reqPoint.AddCookie(cookie0)
-		reqPoint.AddCookie(cookie1)
-		reqPoint.AddCookie(cookie2)
-		reqPoint.AddCookie(cookie3)
-		reqPoint.AddCookie(cookie4)
-
-		reqPoint.Header.Add("accept", "application/json, text/javascript, */*; q=0.01")
-		reqPoint.Header.Add("accept-encoding", "deflate, br")
-		reqPoint.Header.Add("origin", "https://passport.bilibili.com")
-		reqPoint.Header.Add("referer", "https://passport.bilibili.com/login")
-		reqPoint.Header.Add("sec-fetch-dest", "empty")
-		reqPoint.Header.Add("sec-fetch-RunningMode", "cors")
-		reqPoint.Header.Add("sec-fetch-site", "same-origin")
-
-		reqPoint.Header.Add("x-requested-with", "XMLHttpRequest")
-		reqPoint.Header.Add("content-type", "application/x-www-form-urlencoded; charset=UTF-8")
-	}, data)
-
-	if res != nil && err == nil {
-		var result BiliInfo
-
-		_ = json.NewDecoder(res.Body).Decode(&result)
-		cookies := res.Cookies()
-		if len(cookies) == 8 {
-			biu.DedeUserID = cookies[0].Value
-			biu.DedeUserIDMD5 = cookies[2].Value
-			biu.SESSDATA = cookies[4].Value
-			biu.BiliJCT = cookies[6].Value
-			biu.Login = true
-			biu.InfoUpdate()
-			callback(true)
-		} else {
-			callback(false)
 		}
 	}
 }
