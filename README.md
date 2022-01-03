@@ -45,16 +45,19 @@
     ```
     获得所有用户
     GET /users
-    eg: http://r3inbowari.top:9090/users
+    eg: https://120.77.33.188:9090/users
     
-    添加用户请求
+    登录请求
     POST /user
-    Response oauthData
-    二维码格式(这里随机生成的c44d66aa771148b6360ddf70876e6684即为oauthData参数)：
-    https://passport.bilibili.com/qrcode/h5/login?oauthKey=c44d66aa771148b6360ddf70876e6684
+    eg: https://120.77.33.188:9090/user
+    响应中返回一个oauth key  
+    3835a3c053dcda56c0c0136110f69ec9  
+    注意：二维码的数据格式是 https://passport.bilibili.com/qrcode/h5/login?oauthKey=<oauth key>
+    比如 https://passport.bilibili.com/qrcode/h5/login?oauthKey=3835a3c053dcda56c0c0136110f69ec9
     
-    oAuth回调,是否登陆成功(带上oauthData)
-    POST /user?oauth=c44d66aa771148b6360ddf70876e6684
+    轮询是否登陆成功(带上登录请求中获取的oauth key字段)
+    POST /user?oauth=3835a3c053dcda56c0c0136110f69ec9
+    eg: https://120.77.33.188:9090/user?oauth=3835a3c053dcda56c0c0136110f69ec9
     
     试图删除一个UID
     DETETE/user?uid=3077202
