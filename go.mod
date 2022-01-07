@@ -9,7 +9,7 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/r3inbowari/common v0.1.1
 	github.com/r3inbowari/zlog v0.1.7
-	github.com/r3inbowari/zserver v0.1.1
+	github.com/r3inbowari/zserver v0.1.7
 	github.com/robertkrimen/otto v0.0.0-20191219234010-c382bd3c16ff
 	github.com/robfig/cron v1.2.0
 	github.com/satori/go.uuid v1.2.0
