@@ -134,8 +134,10 @@ func HandleUserDel(w http.ResponseWriter, r *http.Request) {
 	_ = r.ParseForm()
 	uid := r.Form.Get("uid")
 	Log.WithFields(logrus.Fields{"UID": uid}).Info("[BCS] Try to delete user")
-	_ = DelUser(uid)
-	reset()
+	err := DelUser(uid)
+	if err.Error() != "not found user" {
+		reset()
+	}
 	zserver.ResponseCommon(w, "try succeed", "ok", 1, http.StatusOK, 0)
 }
 

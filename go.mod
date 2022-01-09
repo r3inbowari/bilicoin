@@ -7,7 +7,7 @@ require (
 	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751 // indirect
 	github.com/alecthomas/units v0.0.0-20211218093645-b94a6e3cc137 // indirect
 	github.com/gorilla/mux v1.8.0
-	github.com/r3inbowari/common v0.1.1
+	github.com/r3inbowari/common v1.0.3
 	github.com/r3inbowari/zlog v0.1.7
 	github.com/r3inbowari/zserver v0.1.7
 	github.com/robertkrimen/otto v0.0.0-20191219234010-c382bd3c16ff
