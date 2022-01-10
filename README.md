@@ -71,13 +71,20 @@
 
 ## 其它 Command
 
-1. 查询当前配置文件中所有的 `UID`:
+1. 使用命令行通过二维码登录一个用户   
+
+    ```
+    ./bilicoin_linux_amd64 -n
+    ```
+    ![qrcode](https://user-images.githubusercontent.com/30739857/148712500-16285b3e-7f92-4e46-932f-ebca281e3e12.png)   
+ 
+2. 查询当前配置文件中所有的 `UID`:
 
     ```
     ./bilicoin_linux_amd64 -l
     ```
 
-2. 从配置文件中删除指定的 `UID`:
+3. 从配置文件中删除指定的 `UID`:
 
     ```
     ./bilicoin_linux_amd64 -d <用户ID>
@@ -86,7 +93,7 @@
     ./bilicoin_linux_amd64 -d 30722
     ```
 
-3. 配置方糖微信通知[可选]
+4. 配置方糖微信通知[可选]
 
     ```
     ./bilicoin_linux_amd64 -u <用户ID> -f <方糖 SecretKey>
@@ -95,7 +102,7 @@
     ./bilicoin_linux_amd64 -u 30772 -f 933330 SCUxxxxxTe034cxxxxx...
     ```
 
-4. 修改指定UID的Cron表达式(默认是30 50 23 * * ?)
+5. 修改指定UID的Cron表达式(默认是30 50 23 * * ?)
 
    ```
    ./bilicoin_linux_amd64 -u <用户ID> -c [Cron Spec]
