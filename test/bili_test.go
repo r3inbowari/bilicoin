@@ -10,7 +10,7 @@ import (
 )
 
 func TestBili(t *testing.T) {
-	bilicoin.InitBili("dev", "v1.0.0", "cb0dc838e04e841f193f383e06e9d25a534c5809", "1", "1", "1")
+	bilicoin.InitBili("dev", "v1.0.0", "cb0dc838e04e841f193f383e06e9d25a534c5809")
 
 	// release()
 	bilicoin.CronTaskLoad()
@@ -52,7 +52,13 @@ func TestDrop(t *testing.T) {
 	if len(bilicoin.GetConfig(false).BiU) > 0 {
 		//bilicoin.GetConfig().BiU[0].GetBiliCoinLog()
 		//println("size -> ", bilicoin.GetConfig().BiU[0].DropCoinCount)
-		bilicoin.GetConfig(false).BiU[0].DropCoin("BV1sQ4y1X7WK")
+		bilicoin.GetConfig(false).BiU[0].DropCoin(bilicoin.Video{
+			Aid:    123123123,
+			Bvid:   "BV1sQ4y1X7WK",
+			Author: "",
+			Coins:  0,
+			Title:  "",
+		})
 	} else {
 		println("please add a user to test")
 	}
