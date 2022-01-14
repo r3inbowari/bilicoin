@@ -380,7 +380,7 @@ func (biu *BiliUser) DropCoin(bv Video) {
 		return
 	}
 
-	url := fmt.Sprintf("https://api.bilibili.com/x/web-interface/coin/add?aid%d&multiply=1&select_like=1&cross_domain=true&csrf=%s", bv.Aid, biu.BiliJCT)
+	url := fmt.Sprintf("https://api.bilibili.com/x/web-interface/coin/add?aid=%d&multiply=1&select_like=1&cross_domain=true&csrf=%s", bv.Aid, biu.BiliJCT)
 	res, err := Post(url, func(reqPoint *http.Request) {
 		biu.NormalAuthHeader(reqPoint)
 		reqPoint.Header.Add("origin", "https://account.bilibili.com")
