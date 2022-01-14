@@ -29,6 +29,11 @@ func TestGetGuichu(t *testing.T) {
 	}
 }
 
+func TestPopular(t *testing.T) {
+	a := bilicoin.GetPopulars()
+	println(a[0].Title)
+}
+
 func TestUUID(t *testing.T) {
 	bytes, err := ioutil.ReadFile("bili.js")
 	vm := otto.New()

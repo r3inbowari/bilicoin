@@ -32,24 +32,23 @@ type QRCodeData struct {
 }
 
 type BiliUser struct {
-	UUID          string     `json:"_uuid"`                     // CooKie -> UUID
-	BuVID         string     `json:"buvid"`                     // CooKie -> Buv跟踪
-	OAuth         QRCodeData `json:"oauth"`                     // CooKie -> QR登录信息
-	SID           string     `json:"sid"`                       // CooKie -> SID
-	BiliJCT       string     `json:"bili_jct"`                  // CooKie -> JCT
-	SESSDATA      string     `json:"SESSDATA"`                  // CooKie -> Session
-	DedeUserID    string     `json:"uid"`                       // CooKie -> UID
-	DedeUserIDMD5 string     `json:"DedeUserID__ckMd5"`         // CooKie -> UID_Decode
-	Bi            ABi        `json:"bi"`                        // Config -> 用户信息
-	Login         bool       `json:"login"`                     // Config -> 弃用
-	Expire        time.Time  `json:"expire"`                    // CooKie -> 失效时间
-	DropCoinCount int        `json:"drop_coin_count,omitempty"` // Config -> 当天投币数量
-	BlockBVList   []string   `json:"block_bv_list"`             // Config -> 禁止列表
-	Cron          string     `json:"cron"`                      // Config -> 执行表达式
-	FT            string     `json:"ft"`                        // Config -> 方糖[可选]
-	FTSwitch      bool       `json:"ft_switch"`                 // Config -> 方糖开关
-	ConvertCoin   bool       `json:"sw_convert_coin"`           // Config -> 银瓜子兑换硬币
-	Tasks         []string   `json:"tasks"`                     // Config -> 任务列表
+	UUID          string     `json:"_uuid"`             // CooKie -> UUID
+	BuVID         string     `json:"buvid"`             // CooKie -> Buv跟踪
+	OAuth         QRCodeData `json:"oauth"`             // CooKie -> QR登录信息
+	SID           string     `json:"sid"`               // CooKie -> SID
+	BiliJCT       string     `json:"bili_jct"`          // CooKie -> JCT
+	SESSDATA      string     `json:"SESSDATA"`          // CooKie -> Session
+	DedeUserID    string     `json:"uid"`               // CooKie -> UID
+	DedeUserIDMD5 string     `json:"DedeUserID__ckMd5"` // CooKie -> UID_Decode
+	Bi            ABi        `json:"bi"`                // Config -> 用户信息
+	Login         bool       `json:"login"`             // Config -> 弃用
+	Expire        time.Time  `json:"expire"`            // CooKie -> 失效时间
+	DropCoinCount int        `json:"-"`                 // Config -> 当天投币数量
+	BlockBVList   []string   `json:"block_bv_list"`     // Config -> 禁止列表
+	Cron          string     `json:"cron"`              // Config -> 执行表达式
+	FT            string     `json:"ft"`                // Config -> 方糖[可选]
+	FTSwitch      bool       `json:"ft_switch"`         // Config -> 方糖开关
+	Tasks         []string   `json:"tasks"`             // Config -> 任务列表
 }
 
 type ABi struct {
@@ -373,20 +372,19 @@ func (biu *BiliUser) GetBiliCoinLog() error {
 }
 
 // DropCoin 打赏逻辑
-func (biu *BiliUser) DropCoin(bv string) {
-	// TODO fix: panic if error-bv inputted
-	aid := BVCovertDec(bv)
+func (biu *BiliUser) DropCoin(bv Video) {
+	// aid := BVCovertDec(bv)
 	if biu.DropCoinCount > 4 {
-		Log.WithFields(logrus.Fields{"BVID": bv, "AVID": aid, "UID": biu.DedeUserID, "dropCount": biu.DropCoinCount}).Warn("number of coins tossed today >= 5")
+		Log.WithFields(logrus.Fields{"BVID": bv.Bvid, "AVID": bv.Aid, "UID": biu.DedeUserID, "dropCount": biu.DropCoinCount}).Warn("number of coins tossed today >= 5")
 		biu.SendMessage2WeChat(biu.DedeUserID + "打赏上限")
 		return
 	}
-	url := "https://api.bilibili.com/x/web-interface/coin/add?" + "aid=" + aid + "&multiply=1&select_like=1&cross_domain=true&csrf=" + biu.BiliJCT
 
+	url := fmt.Sprintf("https://api.bilibili.com/x/web-interface/coin/add?aid%d&multiply=1&select_like=1&cross_domain=true&csrf=%s", bv.Aid, biu.BiliJCT)
 	res, err := Post(url, func(reqPoint *http.Request) {
 		biu.NormalAuthHeader(reqPoint)
 		reqPoint.Header.Add("origin", "https://account.bilibili.com")
-		reqPoint.Header.Add("referer", "https://www.bilibili.com/video/"+bv+"/?spm_id_from=333.788.videocard.0")
+		reqPoint.Header.Add("referer", fmt.Sprintf("https://www.bilibili.com/video/%s/?spm_id_from=333.788.videocard.0", bv.Bvid))
 	})
 
 	if res != nil && err == nil {
@@ -397,12 +395,19 @@ func (biu *BiliUser) DropCoin(bv string) {
 			biu.DropCoinCount++
 		}
 		if msg.Message == "0" {
-			Log.WithFields(logrus.Fields{"BVID": bv, "AVID": aid, "UID": biu.DedeUserID, "dropCount": biu.DropCoinCount}).Info("[TASK] Drop succeed")
-			biu.SendMessage2WeChat(biu.DedeUserID + "打赏" + bv + "成功")
+			Log.WithFields(logrus.Fields{"TTL": msg.TTL, "M": msg.Message, "BVID": bv.Bvid, "AVID": bv.Aid, "UID": biu.DedeUserID, "dropCount": biu.DropCoinCount}).Info("[TASK] Drop succeed")
+			biu.SendMessage2WeChat(biu.DedeUserID + "打赏" + bv.Bvid + "成功")
 		} else if msg.Message == "超过投币上限啦~" {
 			// 投币失败，退回1
 			biu.DropCoinCount--
-			Log.WithFields(logrus.Fields{"BVID": bv, "AVID": aid, "UID": biu.DedeUserID, "dropCount": biu.DropCoinCount}).Info("[TASK] Drop limited")
+			Log.WithFields(logrus.Fields{"TTL": msg.TTL, "M": msg.Message, "BVID": bv.Bvid, "AVID": bv.Aid, "UID": biu.DedeUserID, "dropCount": biu.DropCoinCount}).Info("[TASK] Drop limited")
+		} else {
+			Log.WithFields(logrus.Fields{"TTL": msg.TTL, "M": msg.Message, "BVID": bv.Bvid, "AVID": bv.Aid, "UID": biu.DedeUserID, "dropCount": biu.DropCoinCount}).Info("[TASK] Drop unknown status")
+		}
+	} else {
+		Log.WithFields(logrus.Fields{"cnt": biu.DropCoinCount, "id": biu.DedeUserID, "url": url}).Error("[DBG] coin error.res nil")
+		if err != nil {
+			Log.WithFields(logrus.Fields{"cnt": biu.DropCoinCount, "id": biu.DedeUserID, "url": url}).Error("[DBG] coin error")
 		}
 	}
 }
@@ -420,7 +425,7 @@ func (biu *BiliUser) SendMessage2WeChat(title string, content ...string) {
 }
 
 func (biu *BiliUser) RandDrop() {
-	bvs := GetGuichuBVs()
+	bvs := GetPopulars()
 	rand.Seed(time.Now().UnixNano())
 	randIndex := rand.Intn(len(bvs))
 	biu.DropCoin(bvs[randIndex])
@@ -504,24 +509,20 @@ type Task func(user *BiliUser) error
 var cronTask sync.Map
 
 func BiliExecutor(user *BiliUser) {
+	c := cron.New()
+	uuid := CreateUUID()
+	cronTask.Store(uuid, c)
+	c.Start()
 	for _, t := range user.Tasks {
-		task, ok := TaskMap[t]
-		if ok {
-
-			c := cron.New()
-			uuid := CreateUUID()
-			cronTask.Store(uuid, c)
+		if task, ok := TaskMap[t]; ok {
 			Log.WithFields(logrus.Fields{"UID": user.DedeUserID, "Cron": user.Cron, "TaskID": uuid, "TaskName": t}).Info("[CRON] add task")
 			_ = c.AddFunc(user.Cron, func() {
-				err := task(user)
-				if err != nil {
+				if err := task(user); err != nil {
 					Log.WithFields(logrus.Fields{"UID": user.DedeUserID, "TaskID": uuid}).Warn("[CRON] task failed")
 					return
 				}
 				Log.WithFields(logrus.Fields{"UID": user.DedeUserID}).Info("[CRON] task completed")
 			})
-			c.Start()
-
 		}
 	}
 }

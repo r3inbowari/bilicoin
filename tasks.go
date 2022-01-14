@@ -16,7 +16,7 @@ func TaskSilver2Coin(user *BiliUser) error {
 		return err
 	}
 	// 使用银瓜子兑换硬币一枚
-	if user.ConvertCoin && user.Bi.Silver >= 700 {
+	if user.Bi.Silver >= 700 {
 		return user.Silver2Coin()
 	}
 	return errors.New("not enough silver")
@@ -34,7 +34,8 @@ func TaskDropCoin(user *BiliUser) error {
 			break
 		}
 		user.RandDrop()
-		time.Sleep(Random(60))
+		ra := Random(60)
+		time.Sleep(ra)
 	}
 	return nil
 }

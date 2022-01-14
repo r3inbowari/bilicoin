@@ -3,6 +3,7 @@ package bilicoin
 import (
 	"errors"
 	qrcodeTerminal "github.com/Baozisoftware/qrcode-terminal-go"
+	"github.com/r3inbowari/common"
 	. "github.com/r3inbowari/zlog"
 	"github.com/robertkrimen/otto"
 	"github.com/satori/go.uuid"
@@ -71,6 +72,30 @@ func GetGuichuBVs() []string {
 	result, _ := ioutil.ReadAll(res.Body)
 	reg := regexp.MustCompile("BV[a-zA-Z0-9_]{10}")
 	return reg.FindAllString(string(result), -1)
+}
+
+type Video struct {
+	Aid    int    `json:"aid"`
+	Bvid   string `json:"bvid"`
+	Author string `json:"author"`
+	Coins  int    `json:"coins"`
+	Title  string `json:"title"`
+}
+
+type Popular struct {
+	Data struct {
+		List []Video `json:"list"`
+	} `json:"data"`
+}
+
+func GetPopulars() []Video {
+	var b Popular
+	_, err := common.RequestJson(common.RequestOptions{Url: "https://api.bilibili.com/x/web-interface/popular?ps=20&pn=1"}, &b)
+	if err != nil {
+		println(err.Error())
+		return nil
+	}
+	return b.Data.List
 }
 
 // _uuid 生成

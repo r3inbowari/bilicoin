@@ -6,7 +6,7 @@
 
 packageName=cmd
 appName=bilicoin
-buildVersion=v1.1.0
+buildVersion=v1.1.1
 major=1
 minor=1
 patch=0
