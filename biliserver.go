@@ -13,7 +13,7 @@ import (
 
 func BCApplication() {
 	Log.Info("[BCS] BiliCoin is running")
-	reset()
+	reloadAll()
 
 	d := zserver.DefaultServer(zserver.Options{
 		Log:    &Log.Logger,
@@ -28,7 +28,7 @@ func BCApplication() {
 	d.Map("/version", HandleVersion)
 	d.Map("/users", HandleUsers)
 	d.Map("/user", HandleUserAdd, http.MethodPost)
-	d.Map("/user", HandleUserDel, http.MethodGet)
+	d.Map("/user", HandleUserDel, http.MethodDelete)
 	d.Start()
 }
 
@@ -77,9 +77,9 @@ func HandleCron(w http.ResponseWriter, r *http.Request) {
 		}
 		biu.Cron = cronStr
 		biu.InfoUpdate()
-		Log.WithFields(logrus.Fields{"UID": uid, "Cron": cronStr}).Info("[BCS] Cron save completed by web")
+		Log.WithFields(logrus.Fields{"UID": uid, "Cron": cronStr}).Info("[BCS] cron save completed by web")
 	}
-	reset()
+	reload(uid)
 	zserver.ResponseCommon(w, "try succeed", "ok", 1, http.StatusOK, 0)
 }
 
@@ -122,7 +122,7 @@ func HandleUserAdd(w http.ResponseWriter, r *http.Request) {
 			biliUser.GetBiliLoginInfo(nil)
 			if biliUser.Login {
 				zserver.ResponseCommon(w, biliUser.Login, "ok", 1, http.StatusOK, 0)
-				reset()
+				reload(biliUser.DedeUserID)
 			}
 		} else {
 			zserver.ResponseCommon(w, "non exist", "ok", 1, http.StatusOK, 0)
@@ -136,17 +136,7 @@ func HandleUserDel(w http.ResponseWriter, r *http.Request) {
 	Log.WithFields(logrus.Fields{"UID": uid}).Info("[BCS] Try to delete user")
 	err := DelUser(uid)
 	if err.Error() != "not found user" {
-		reset()
+		reload(uid)
 	}
 	zserver.ResponseCommon(w, "try succeed", "ok", 1, http.StatusOK, 0)
-}
-
-func reset() {
-	cronTask.Range(func(key, value interface{}) bool {
-		Log.WithFields(logrus.Fields{"TaskID": key.(string)}).Info("[BSC] release task")
-		value.(*cron.Cron).Stop()
-		cronTask.Delete(key)
-		return true
-	})
-	CronTaskLoad()
 }
