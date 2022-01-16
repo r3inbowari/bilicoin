@@ -58,7 +58,7 @@ func release() {
 		// 登录
 		user, _ := bilicoin.CreateUser()
 		_ = user.GetQRCode()
-		user.QRCodePrint()
+		user.PrintQRCode()
 		user.BiliScanAwait()
 		return
 	}

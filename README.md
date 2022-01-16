@@ -60,7 +60,7 @@
     eg: https://120.77.33.188:9090/user?oauth=3835a3c053dcda56c0c0136110f69ec9
     
     试图删除一个UID
-    DETETE/user?uid=3077202
+    DETETE /user?uid=3077202
     
     试图修改UID的Cron表达式
     GET /{id}/cron?spec=cron表达式
@@ -120,7 +120,7 @@
 
     ```
     // build image
-    docker build -t r3inbowari/bilicoin:v1.1.1 .
+    docker build -t r3inbowari/bilicoin:v1.1.2 .
 
     // prune dangling image: builder
     docker image prune --filter label=stage=builder
@@ -129,7 +129,7 @@
 2. 如果不想构建的话可以直接拉取已经构建好的镜像 [linux/amd64](https://hub.docker.com/repository/docker/r3inbowari/bilicoin "DockerHub Page")
 
     ```
-    docker pull r3inbowari/bilicoin:v1.1.1
+    docker pull r3inbowari/bilicoin:v1.1.2
     ```
 
 3. 直接运行即可
@@ -140,7 +140,7 @@
     --name bilicoin \
     -p 9090:9090 \
     -itd --restart=always \
-    r3inbowari/bilicoin:v1.1.1
+    r3inbowari/bilicoin:v1.1.2
    
     // 挂载外部config文件
     docker run \
@@ -148,7 +148,7 @@
     -p 9090:9090 \
     -itd --restart=always \
     -v $PWD/bili.json:/app/bili.json \
-    r3inbowari/bilicoin:v1.1.1
+    r3inbowari/bilicoin:v1.1.2
    
     ```
 

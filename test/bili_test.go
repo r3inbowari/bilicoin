@@ -13,7 +13,7 @@ func TestBili(t *testing.T) {
 	bilicoin.InitBili("dev", "v1.0.0", "cb0dc838e04e841f193f383e06e9d25a534c5809")
 
 	// release()
-	bilicoin.CronTaskLoad()
+	bilicoin.LoadTask()
 	time.Sleep(time.Hour)
 }
 
@@ -91,7 +91,7 @@ func MainT() {
 	// bilicoin.Info("Canvas Fingerprinting " + bilicoin.GetConfig().Finger)
 	// user, _ := bilicoin.CreateUser()
 	// user.GetQRCode()
-	// user.QRCodePrint()
+	// user.PrintQRCode()
 	// user.BiliScanAwait()
 	// del
 	// _ = bilicoin.DelUser("30722")

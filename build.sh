@@ -6,10 +6,10 @@
 
 packageName=cmd
 appName=bilicoin
-buildVersion=v1.1.1
+buildVersion=v1.1.2
 major=1
 minor=1
-patch=0
+patch=2
 Mode=REL
 
 goVersion=$(go version)

@@ -22,7 +22,7 @@ func TaskSilver2Coin(user *BiliUser) error {
 	return errors.New("not enough silver")
 }
 
-const maxLoopCount = 15
+const maxLoopCount = 5 + 3 // only three failures are allowed...
 
 func TaskDropCoin(user *BiliUser) error {
 	// 获取日志失败

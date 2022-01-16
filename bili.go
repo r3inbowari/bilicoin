@@ -143,8 +143,8 @@ func CreateUser() (*BiliUser, error) {
 	return &biu, err
 }
 
-// QRCodePrint 打印二维码
-func (biu *BiliUser) QRCodePrint() {
+// PrintQRCode 打印二维码
+func (biu *BiliUser) PrintQRCode() {
 	QRCPrint(biu.OAuth.Url)
 }
 
@@ -343,8 +343,8 @@ func (biu *BiliUser) GetBiliCoinLog() error {
 		_ = json.NewDecoder(res.Body).Decode(&msg)
 
 		// fix: 循环投币的惨剧可能发生
-		// reason: 在部分地区的分发服务器可能默认采用了gzip压缩导致乱码
-		// 判断投币历史记录是否成功获取,即ttl跳数>0必然成功
+		// reason: gzip压缩导致乱码
+		// 判断投币历史记录是否成功获取,即ttl>0即为请求成功
 		if msg.TTL < 1 {
 			return errors.New("the service is unreachable or an unknown error has occurred")
 		}
@@ -367,7 +367,7 @@ func (biu *BiliUser) GetBiliCoinLog() error {
 			}
 		}
 	}
-	Log.WithFields(logrus.Fields{"dropCount": biu.DropCoinCount, "UID": biu.DedeUserID}).Info("[USER] Drop history")
+	Log.WithFields(logrus.Fields{"dropCount": biu.DropCoinCount, "UID": biu.DedeUserID}).Info("[USER] drop history")
 	return nil
 }
 
@@ -441,25 +441,25 @@ func LoadUsers() []BiliUser {
 // GetUser 尝试通过UID获取一个UID实体
 func GetUser(uid string) (*BiliUser, error) {
 	users := LoadUsers()
-
-	if userIndex := sort.Search(len(users), func(index int) bool { return users[index].DedeUserID == uid }); userIndex == len(users) {
-		return nil, errors.New("not found user")
-	} else {
-		return &users[userIndex], users[userIndex].GetBiliCoinLog()
+	for k, _ := range users {
+		if users[k].DedeUserID == uid {
+			return &users[k], users[k].GetBiliCoinLog()
+		}
 	}
+	return nil, errors.New("not found user")
 }
 
 // DelUser 尝试删除Config中一个UID配置实体
 func DelUser(uid string) error {
 	users := LoadUsers()
-
-	if userIndex := sort.Search(len(users), func(index int) bool { return users[index].DedeUserID == uid }); userIndex == len(users) {
-		return errors.New("not found user")
-	} else {
-		users = append(users[:userIndex], users[userIndex+1:]...)
-		config.BiU = users
-		return config.SetConfig()
+	for k, _ := range users {
+		if users[k].DedeUserID == uid {
+			users = append(users[:k], users[k+1:]...)
+			config.BiU = users
+			return config.SetConfig()
+		}
 	}
+	return errors.New("not found user")
 }
 
 func searchBiliUser(users []BiliUser, uid string) *BiliUser {
@@ -510,17 +510,16 @@ type Task func(user *BiliUser) error
 
 var cronTask sync.Map
 
-func BiliExecutor(user *BiliUser) {
+func executor(user *BiliUser) {
 	c := cron.New()
-	uuid := CreateUUID()
-	cronTask.Store(uuid, c)
+	cronTask.Store(user.DedeUserID, c)
 	c.Start()
 	for _, t := range user.Tasks {
 		if task, ok := TaskMap[t]; ok {
-			Log.WithFields(logrus.Fields{"UID": user.DedeUserID, "Cron": user.Cron, "TaskID": uuid, "TaskName": t}).Info("[CRON] add task")
+			Log.WithFields(logrus.Fields{"UID": user.DedeUserID, "Cron": user.Cron, "TaskName": t}).Info("[CRON] add task")
 			_ = c.AddFunc(user.Cron, func() {
 				if err := task(user); err != nil {
-					Log.WithFields(logrus.Fields{"UID": user.DedeUserID, "TaskID": uuid, "err": err.Error()}).Warn("[CRON] task failed")
+					Log.WithFields(logrus.Fields{"UID": user.DedeUserID, "err": err.Error()}).Warn("[CRON] task failed")
 					return
 				}
 				Log.WithFields(logrus.Fields{"UID": user.DedeUserID}).Info("[CRON] task completed")
@@ -529,8 +528,34 @@ func BiliExecutor(user *BiliUser) {
 	}
 }
 
-// CronTaskLoad 注册所有投币任务
-func CronTaskLoad() {
+func reload(uid string) {
+	Log.WithFields(logrus.Fields{"UID": uid}).Info("[BSC] reload task")
+	removeTask(uid)
+	user, err := GetUser(uid)
+	if err != nil {
+		return
+	}
+	executor(user)
+}
+
+func reloadAll() {
+	cronTask.Range(func(key, value interface{}) bool {
+		value.(*cron.Cron).Stop()
+		cronTask.Delete(key)
+		return true
+	})
+	LoadTask()
+}
+
+func removeTask(key string) {
+	if value, ok := cronTask.Load(key); ok {
+		value.(*cron.Cron).Stop()
+		cronTask.Delete(key)
+	}
+}
+
+// LoadTask 注册所有投币任务
+func LoadTask() {
 	// warning: not found user
 	bius := GetConfig(true).BiU
 	if len(bius) == 0 {
@@ -539,6 +564,6 @@ func CronTaskLoad() {
 		return
 	}
 	for i := range bius {
-		BiliExecutor(&bius[i])
+		executor(&bius[i])
 	}
 }
