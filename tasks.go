@@ -22,20 +22,23 @@ func TaskSilver2Coin(user *BiliUser) error {
 	return errors.New("not enough silver")
 }
 
+const maxLoopCount = 15
+
 func TaskDropCoin(user *BiliUser) error {
 	// 获取日志失败
 	// 过期、未知错误、服务不可达、解析错误
 	if err := user.GetBiliCoinLog(); err != nil {
 		return err
 	}
-	for true {
+	for loopCount := 0; loopCount < maxLoopCount; loopCount++ {
 		if user.DropCoinCount > 4 {
 			user.InfoUpdate()
-			break
+			return nil
 		}
 		user.RandDrop()
 		ra := Random(60)
 		time.Sleep(ra)
 	}
-	return nil
+	user.InfoUpdate()
+	return errors.New("max retries reached")
 }

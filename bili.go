@@ -43,7 +43,7 @@ type BiliUser struct {
 	Bi            ABi        `json:"bi"`                // Config -> 用户信息
 	Login         bool       `json:"login"`             // Config -> 弃用
 	Expire        time.Time  `json:"expire"`            // CooKie -> 失效时间
-	DropCoinCount int        `json:"-"`                 // Config -> 当天投币数量
+	DropCoinCount int        `json:"-"`                 // Mem -> 当天投币数量
 	BlockBVList   []string   `json:"block_bv_list"`     // Config -> 禁止列表
 	Cron          string     `json:"cron"`              // Config -> 执行表达式
 	FT            string     `json:"ft"`                // Config -> 方糖[可选]
@@ -395,14 +395,16 @@ func (biu *BiliUser) DropCoin(bv Video) {
 			biu.DropCoinCount++
 		}
 		if msg.Message == "0" {
-			Log.WithFields(logrus.Fields{"TTL": msg.TTL, "M": msg.Message, "BVID": bv.Bvid, "AVID": bv.Aid, "UID": biu.DedeUserID, "dropCount": biu.DropCoinCount}).Info("[TASK] Drop succeed")
+			Log.WithFields(logrus.Fields{"TTL": msg.TTL, "M": msg.Message, "BVID": bv.Bvid, "AVID": bv.Aid, "UID": biu.DedeUserID, "dropCount": biu.DropCoinCount}).Info("[TASK] drop succeed")
 			biu.SendMessage2WeChat(biu.DedeUserID + "打赏" + bv.Bvid + "成功")
 		} else if msg.Message == "超过投币上限啦~" {
 			// 投币失败，退回1
 			biu.DropCoinCount--
-			Log.WithFields(logrus.Fields{"TTL": msg.TTL, "M": msg.Message, "BVID": bv.Bvid, "AVID": bv.Aid, "UID": biu.DedeUserID, "dropCount": biu.DropCoinCount}).Info("[TASK] Drop limited")
+			Log.WithFields(logrus.Fields{"TTL": msg.TTL, "M": msg.Message, "BVID": bv.Bvid, "AVID": bv.Aid, "UID": biu.DedeUserID, "dropCount": biu.DropCoinCount}).Info("[TASK] drop limited")
+		} else if msg.Message == "账号未登录" {
+			Log.WithFields(logrus.Fields{"TTL": msg.TTL, "M": msg.Message, "BVID": bv.Bvid, "AVID": bv.Aid, "UID": biu.DedeUserID, "dropCount": biu.DropCoinCount}).Warn("[TASK] expired token")
 		} else {
-			Log.WithFields(logrus.Fields{"TTL": msg.TTL, "M": msg.Message, "BVID": bv.Bvid, "AVID": bv.Aid, "UID": biu.DedeUserID, "dropCount": biu.DropCoinCount}).Info("[TASK] Drop unknown status")
+			Log.WithFields(logrus.Fields{"TTL": msg.TTL, "M": msg.Message, "BVID": bv.Bvid, "AVID": bv.Aid, "UID": biu.DedeUserID, "dropCount": biu.DropCoinCount}).Info("[TASK] drop unknown status")
 		}
 	} else {
 		Log.WithFields(logrus.Fields{"cnt": biu.DropCoinCount, "id": biu.DedeUserID, "url": url}).Error("[DBG] coin error.res nil")
@@ -518,7 +520,7 @@ func BiliExecutor(user *BiliUser) {
 			Log.WithFields(logrus.Fields{"UID": user.DedeUserID, "Cron": user.Cron, "TaskID": uuid, "TaskName": t}).Info("[CRON] add task")
 			_ = c.AddFunc(user.Cron, func() {
 				if err := task(user); err != nil {
-					Log.WithFields(logrus.Fields{"UID": user.DedeUserID, "TaskID": uuid}).Warn("[CRON] task failed")
+					Log.WithFields(logrus.Fields{"UID": user.DedeUserID, "TaskID": uuid, "err": err.Error()}).Warn("[CRON] task failed")
 					return
 				}
 				Log.WithFields(logrus.Fields{"UID": user.DedeUserID}).Info("[CRON] task completed")
