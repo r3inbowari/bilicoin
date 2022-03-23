@@ -14,9 +14,9 @@
 4. 支持[方糖](https://sct.ftqq.com/ "ftqq")进行微信通知
 5. 支持 `QRCode` 登录，无需手动粘贴 `Cookie`
 6. 支持多用户处理
-7. [demo 查看](https://120.77.33.188:9090/version "Demo")  
-   [QR demo https](https://120.77.33.188/bilicoin/)  
-   [QR demo http](http://120.77.33.188/bilicoin/)  
+7. [demo 查看](https://124.223.223.183:9090/version "Demo")  
+   [QR demo https](https://124.223.223.183/bilicoin/)  
+   [QR demo http](http://124.223.223.183/bilicoin/)  
 8. 银瓜子转硬币（需要手动在用户的 `Tasks` 数组中添加 `silver-2-coin`）  
 9. 有空就更新
 
@@ -45,11 +45,11 @@
     ```
     获得所有用户
     GET /users
-    eg: https://120.77.33.188:9090/users
+    eg: https://124.223.223.183:9090/users
     
     登录请求
     POST /user
-    eg: https://120.77.33.188:9090/user
+    eg: https://124.223.223.183:9090/user
     响应中返回一个oauth key  
     3835a3c053dcda56c0c0136110f69ec9  
     注意：二维码的数据格式是 https://passport.bilibili.com/qrcode/h5/login?oauthKey=<oauth key>
@@ -57,7 +57,7 @@
     
     轮询是否登陆成功(带上登录请求中获取的oauth key字段)
     POST /user?oauth=3835a3c053dcda56c0c0136110f69ec9
-    eg: https://120.77.33.188:9090/user?oauth=3835a3c053dcda56c0c0136110f69ec9
+    eg: https://124.223.223.183:9090/user?oauth=3835a3c053dcda56c0c0136110f69ec9
     
     试图删除一个UID
     DETETE /user?uid=3077202
